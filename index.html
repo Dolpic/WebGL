@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <link rel="stylesheet" href="style.css">
+        <script src="inc/gl-matrix.js"></script>
+        <script src="shaders.js"></script>
+        <script src="engine.js"></script>
+        <script src="utils.js"></script>
+
+        <script src="shapes/Cube.js"></script>
+        <script src="shapes/Pyramid.js"></script>
+        <script src="shapes/Plane.js"></script>
+    </head>
+    <body onload="init();start()">
+        <div id="parameters" class="panel">
+            <details>
+                <summary><h2>Parameters</h2></summary>
+                <details id="camera_parameters">
+                    <summary>Camera</summary>
+                </details>
+                <details id="light_parameters">
+                    <summary>Lights</summary>
+                </details>
+            </details>
+            <hr>
+            <details>
+                <summary><h2>Objects</h2></summary>
+                <div id="objects_details"></div>
+            </details>
+            <hr>
+            <details>
+                <summary><h2>Debug</h2></summary>
+                <table>
+                    <tr><td>FPS : </td><td id="fps"></td></tr>
+                    <tr><td>Refresh rate : </td><td id="refresh_rate"></td></tr>
+                </table>
+                <input onchange="restart()" id="depth_test" type="checkbox" checked/><label>Enable depth testing</label>
+                <br>
+                <label>Depth function (test passes if the new depth value is X than the stored one)</label>
+                <select onchange="restart()" id="depth_func">
+                    <option value="NEVER">Never</option>
+                    <option value="ALWAYS">Always</option>
+                    <option value="LESS">Less</option>
+                    <option value="EQUAL">Equal</option>
+                    <option value="LEQUAL" selected="selected">Less or equal</option>
+                    <option value="GREATER">Greater</option>
+                    <option value="GEQUAL">Greater or equal</option>
+                    <option value="NOTEQUAL">Not equal</option>
+                </select>
+                <div id="projection_matrix"></div>
+                <div id="view_matrix"></div>
+            </details>
+        </div>
+        <canvas id="canvas" width="800" height="800"></canvas>
+    </body>    
+    <script>
+        function getById(id) { return document.getElementById(id) }
+        function getValue(id){ return getById(id).value }
+        function init(){
+            let cp = getById("camera_parameters")
+            cp.innerHTML += generateSliders("T",  ["X","Y","Z"], -100,  100, "Translation", [20,-30,20], "updateCamera()")
+            cp.innerHTML += generateSliders("R",  ["X","Y","Z"], -180,  180, "Rotation",   [60,30,15],   "updateCamera()")
+            cp.innerHTML += generateSliders("S",  ["X","Y","Z"], 0.001, 5,   "Scale",       null,        "updateCamera()")
+
+            let lp = getById("light_parameters")
+            lp.innerHTML += generateSliders("AL", ["R","G","B"], 0,     1,   "Ambiant light color")
+
+            lp.innerHTML += generateSliders("DL", ["R","G","B"], 0,     1,   "Directional light color")
+            lp.innerHTML += generateSliders("DL", ["X","Y","Z"], -1,    1,   "Directional light direction")
+
+            lp.innerHTML += generateSliders("PL", ["R","G","B"], 0,     1,   "Point light color")
+            lp.innerHTML += generateSliders("PL", ["X","Y","Z"], -10,    10,   "Point light position")
+
+            lp.innerHTML += generateSliders("CL", ["R","G","B"], 0,     1,   "Cone light color")
+            lp.innerHTML += generateSliders("CL", ["X","Y","Z"], -10,    10, "Cone light position")
+            lp.innerHTML += generateSliders("CLD", ["X","Y","Z"], -1,    1, "Cone light direction")
+        }
+
+        function getAmbiantLightColor(){ return [getValue("ALR"), getValue("ALG"), getValue("ALB")] }
+        function getDirLightColor(){ return [getValue("DLR"), getValue("DLG"), getValue("DLB")] }
+        function getDirLightPos(){ return [getValue("DLX"), getValue("DLY"), getValue("DLZ")] }
+        function getPointLightColor(){ return [getValue("PLR"), getValue("PLG"), getValue("PLB")] }
+        function getPointLightPos(){ return [getValue("PLX"), getValue("PLY"), getValue("PLZ")] }
+        function getConeLightColor(){ return [getValue("CLR"), getValue("CLG"), getValue("CLB")] }
+        function getConeLightPos(){ return [getValue("CLX"), getValue("CLY"), getValue("CLZ")] }
+        function getConeLightDir(){ return [getValue("CLDX"), getValue("CLDY"), getValue("CLDZ")] }
+        function getDepthFunction(){
+            switch(getValue("depth_func")){
+                case "NEVER"    : return WebGL2RenderingContext.NEVER 
+                case "ALWAYS"   : return WebGL2RenderingContext.ALWAYS 
+                case "LESS"     : return WebGL2RenderingContext.LESS 
+                case "EQUAL"    : return WebGL2RenderingContext.EQUAL 
+                case "LEQUAL"   : return WebGL2RenderingContext.LEQUAL 
+                case "GREATER"  : return WebGL2RenderingContext.GREATER 
+                case "GEQUAL"   : return WebGL2RenderingContext.GEQUAL 
+                case "NOTEQUAL" : return WebGL2RenderingContext.NOTEQUAL 
+            }
+        }
+
+        const informationUpdateInterval = 30
+        let previousTime = 0
+        let frameNumber  = 0
+        let engine       = null
+        let needRestart  = false
+        let cameraMatrices = null
+
+        function restart(){
+            console.log("Restarting...")
+            needRestart = true
+        }
+
+        function start(){
+            needRestart = false
+            engine = new RenderingEngine(getById("canvas"), getById("depth_test").checked, getDepthFunction())
+            engine.createProgram(Shaders.vertex, Shaders.fragment)
+            engine.createLightFramebufferProgram(lightsBufferShaders.vertex, lightsBufferShaders.fragment)
+            engine.addObject(Plane)
+            engine.addObject(Cube, [0,0,9])
+            updateCamera()
+            render(0)
+        }
+
+        function render(currentTime) {
+            frameNumber++
+            const deltaTime = currentTime - previousTime
+            previousTime = currentTime
+
+            if(frameNumber % informationUpdateInterval == 0){
+                getById("fps").innerHTML = Math.round(1000/deltaTime)
+                getById("refresh_rate").innerHTML = Math.round(deltaTime)+" ms"
+                printObjects(engine.objects)
+            }
+
+            engine.setAmbientLight(getAmbiantLightColor())
+            engine.setDirectionalLight(getDirLightColor(), getDirLightPos())
+            engine.setPointLight(getPointLightColor(), getPointLightPos())
+            //engine.setConeLight(getConeLightColor(), getConeLightPos(), getConeLightDir())
+
+            engine.render()
+            needRestart ? start() : requestAnimationFrame(render)
+        }
+
+        function updateCamera(){
+            cameraMatrices = engine.setCamera(
+                [getValue("TX"), getValue("TY"), getValue("TZ")],
+                [getValue("RX"), getValue("RY"), getValue("RZ")],
+                [getValue("SX"), getValue("SY"), getValue("SZ")]
+            )
+            printMatrix(getById("projection_matrix"), cameraMatrices.projection, "Projection Matrix", `overrideMatrix('${engine.matrices.projection}', this)`)
+            printMatrix(getById("view_matrix"),       cameraMatrices.view,       "View Matrix",       `overrideMatrix('${engine.matrices.view}', this)`)
+        }
+
+        function printObjects(objs){
+            container = getById("objects_details")
+            objs.forEach( (obj, i) => {
+                if(getById("objects_details_"+i) == null){
+                    container.innerHTML += `
+                        <details id="objects_details_${i}">
+                            <summary>Object ${i}</summary>
+                            Number of triangles : ${obj.count}
+                            <div id="objects_details_${i}_matrix"></div>
+                        </details>`
+                }
+                printMatrix(getById(`objects_details_${i}_matrix`), obj.modelMatrix, "Model matrix", `overrideMatrix('${engine.matrices.model}', this, ${i})`)
+            })
+        }
+
+        function overrideMatrix(name, caller, object_id=null){
+            values = caller.parentElement.parentElement.parentElement.querySelectorAll("input")
+            matrix = []
+            values.forEach(e => matrix.push(parseFloat(e.value)))
+            if(object_id==null){
+                engine.setMatrix(name, matrix)
+            }else{
+                engine.objects[object_id].modelMatrix = matrix
+            }
+        }
+    </script>  
+</html>
