@@ -116,6 +116,8 @@
             engine.createLightFramebufferProgram(lightsBufferShaders.vertex, lightsBufferShaders.fragment)
             engine.addObject(Plane)
             engine.addObject(Cube, [0,0,9])
+            engine.addObject(Cube, [3,5,5])
+            engine.addObject(Cube, [-12,0,5])
             updateCamera()
             render(0)
         }
@@ -134,7 +136,7 @@
             engine.setAmbientLight(getAmbiantLightColor())
             engine.setDirectionalLight(getDirLightColor(), getDirLightPos())
             engine.setPointLight(getPointLightColor(), getPointLightPos())
-            //engine.setConeLight(getConeLightColor(), getConeLightPos(), getConeLightDir())
+            engine.setConeLight(getConeLightColor(), getConeLightPos(), getConeLightDir())
 
             engine.render()
             needRestart ? start() : requestAnimationFrame(render)

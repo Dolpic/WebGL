@@ -10,7 +10,7 @@ const Shaders = {
     uniform mat4 uViewMatrix;
     uniform mat4 uProjectionMatrix;
 
-    uniform mat4 uProjectionLightMatrix;
+    uniform mat4 uLightMatrix;
 
     uniform vec3 uLightPositionPoint;
     uniform vec3 uLightPositionCone;
@@ -35,7 +35,7 @@ const Shaders = {
 
         // Sent to Fragment Shader
         vColor        = aVertexColor;
-        vTextureCoord = aVertexPosition;//uViewMatrix * uModelMatrix * aVertexPosition;//aTextureCoord;
+        vTextureCoord =  uLightMatrix * uModelMatrix * aVertexPosition;//aTextureCoord;
         vNormals = mat3(transpose(inverse(uViewMatrix))) * aVertexNormal;
         
         vSurfaceToCam   = (uViewMatrix * aVertexPosition).xyz;
@@ -114,6 +114,6 @@ const lightsBufferShaders = {
     in lowp vec2 position;
     out vec4 colors;
     void main() {
-        colors = vec4(vDepth, pow(position.x,10.0), pow(position.y,10.0), 1.0);
+        colors = vec4(vDepth, pow(position.x,50.0), pow(position.y,50.0), 1.0);
     }`
 }

@@ -179,7 +179,8 @@ class RenderingEngine{
     this.setMatrix("uViewMatrix", view)
 
     const project = glMatrix.mat4.create()
-    const ortho_size = [10,10]
+    glMatrix.mat4.identity(project)
+    const ortho_size = [20,20]
     glMatrix.mat4.ortho(project, -ortho_size[0]/2, ortho_size[0]/2, -ortho_size[1]/2, ortho_size[1]/2, 0.1, 100)
     this.setMatrix(this.matrices.projection, project)
     
@@ -194,7 +195,13 @@ class RenderingEngine{
       this.gl.viewport(0, 0, this.gl.canvas.width, this.gl.canvas.height)
       this.gl.useProgram(this.program)
 
-      this.setMatrix("uProjectionLightMatrix", project)
+      const lightMatrix = glMatrix.mat4.create()
+      //glMatrix.mat4.identity(view)
+
+      glMatrix.mat4.scale(view,view, [1/2,1/2,1])
+      glMatrix.mat4.translate(view, view, [10,10,0])
+      glMatrix.mat4.multiply(lightMatrix, project, view)
+      this.setMatrix("uLightMatrix", lightMatrix)
       this.gl.uniform1i(this.gl.getUniformLocation(this.program, "uTexture"), 0)
 
       this.gl.clear(this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT)
