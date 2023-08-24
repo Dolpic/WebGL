@@ -73,7 +73,7 @@
 
             lp.innerHTML += generateSliders("CL", ["R","G","B"], 0,     1,   "Cone light color")
             lp.innerHTML += generateSliders("CL", ["X","Y","Z"], -10,    10, "Cone light position")
-            lp.innerHTML += generateSliders("CLD", ["X","Y","Z"], -1,    1, "Cone light direction")
+            lp.innerHTML += generateSliders("CLD", ["X","Y","Z"], 0,    360, "Cone light direction")
         }
 
         function getAmbiantLightColor(){ return [getValue("ALR"), getValue("ALG"), getValue("ALB")] }

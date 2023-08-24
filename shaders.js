@@ -72,7 +72,7 @@ const Shaders = {
     out vec4 colors;
 
     void main() {
-        vec3 projectedTexcoord = vTextureCoord.xyz / vTextureCoord.w;
+        vec3 projectedTexcoord = vTextureCoord.xyz;// / vTextureCoord.w;
 
         vec3 normal = normalize(vNormals);
 

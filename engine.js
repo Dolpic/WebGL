@@ -164,6 +164,7 @@ class RenderingEngine{
     this.gl.clear(this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT)
 
     const DEBUG = false
+    
 
     if(DEBUG){
       this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, null)
@@ -174,7 +175,7 @@ class RenderingEngine{
     this.gl.viewport(0, 0, 512, 512)
     this.gl.useProgram(this.lightProgram)
 
-    const view = createTransformMatrix(this.lightPosition, [0,0,0])
+    const view = createTransformMatrix(this.lightPosition,this.lightDirection)
     glMatrix.mat4.invert(view, view)
     this.setMatrix("uViewMatrix", view)
 
@@ -198,9 +199,12 @@ class RenderingEngine{
       const lightMatrix = glMatrix.mat4.create()
       //glMatrix.mat4.identity(view)
 
-      glMatrix.mat4.scale(view,view, [1/2,1/2,1])
-      glMatrix.mat4.translate(view, view, [10,10,0])
-      glMatrix.mat4.multiply(lightMatrix, project, view)
+
+      glMatrix.mat4.translate(lightMatrix, lightMatrix, [0.5,0.5,0.5])
+      glMatrix.mat4.scale(lightMatrix,lightMatrix, [0.5,0.5,0.5])
+      glMatrix.mat4.multiply(lightMatrix, lightMatrix, project)
+      glMatrix.mat4.invert(view, view)
+      glMatrix.mat4.multiply(lightMatrix, lightMatrix, view)
       this.setMatrix("uLightMatrix", lightMatrix)
       this.gl.uniform1i(this.gl.getUniformLocation(this.program, "uTexture"), 0)
 
