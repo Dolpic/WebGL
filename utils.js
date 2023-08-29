@@ -93,6 +93,36 @@ function createTransformMatrix(position, rotation, scale=[1,1,1]){
     return model
 }
 
+function setDefaultParams(params){
+    let result = {}
+    let defaults = {
+        "depth_test": true,
+        "depth_test_function": WebGL2RenderingContext.LEQUAL,
+        "clear_color": [0.0, 0.0, 0.0, 1.0],
+        "clear_depth": 1.0,
+        "show_shadow_map" : false,
+        "shadow_map_size" : 512
+    }
+    for(const prop in defaults){
+        result[prop] = params.hasOwnProperty(prop) ? params[prop] : defaults[prop]
+    }
+    return result
+}
+
+function printDebugProgram(gl, program){
+    console.log("Program informations :")
+    console.log("Attributes : ")
+    for(let i=0; i<gl.getProgramParameter(program, gl.ACTIVE_ATTRIBUTES); i++){
+      console.log(gl.getActiveAttrib(program, i))
+    }
+    console.log("Uniforms : ")
+    for(let i=0; i<gl.getProgramParameter(program, gl.ACTIVE_UNIFORMS); i++){
+      console.log(gl.getActiveUniform(program, i))
+    }
+    console.log("Shaders : ")
+    console.log(gl.getAttachedShaders(program))
+  }
+
 function printMatrix(container, matrix, title="", callback=""){
     function line(v){
         return `<td><input value=${v} oninput="${callback}"></input></td>`
@@ -114,9 +144,9 @@ function printMatrix(container, matrix, title="", callback=""){
     }
 }
 
-function generateSliders(prefix, sufffixes, min, max, title, default_values = null, add_on_input="", step=0.0001){
+function generateSliders(prefix, suffixes, min, max, title, default_values = null, add_on_input="", step=0.0001){
     let result = `<details><summary>${title}</summary><table>`
-    sufffixes.forEach( (e,i) =>{
+    suffixes.forEach( (e,i) =>{
         let id = prefix+e
         let value = default_values == null ? (max+min)/2 : default_values[i]
         let id_value = id+"_value"

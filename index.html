@@ -10,6 +10,7 @@
         <script src="shapes/Cube.js"></script>
         <script src="shapes/Pyramid.js"></script>
         <script src="shapes/Plane.js"></script>
+        <script src="shapes/Light_marker.js"></script>
     </head>
     <body onload="init();start()">
         <div id="parameters" class="panel">
@@ -34,7 +35,8 @@
                     <tr><td>FPS : </td><td id="fps"></td></tr>
                     <tr><td>Refresh rate : </td><td id="refresh_rate"></td></tr>
                 </table>
-                <input onchange="restart()" id="depth_test" type="checkbox" checked/><label>Enable depth testing</label>
+                <input onchange="params.depth_test=this.checked;restart()" id="depth_test" type="checkbox" checked/><label>Enable depth testing</label>
+                <input onchange="params.show_shadow_map=this.checked;restart()" id="show_shadow_map" type="checkbox" unchecked/><label>Show shadow map</label>
                 <br>
                 <label>Depth function (test passes if the new depth value is X than the stored one)</label>
                 <select onchange="restart()" id="depth_func">
@@ -58,8 +60,8 @@
         function getValue(id){ return getById(id).value }
         function init(){
             let cp = getById("camera_parameters")
-            cp.innerHTML += generateSliders("T",  ["X","Y","Z"], -100,  100, "Translation", [20,-30,20], "updateCamera()")
-            cp.innerHTML += generateSliders("R",  ["X","Y","Z"], -180,  180, "Rotation",   [60,30,15],   "updateCamera()")
+            cp.innerHTML += generateSliders("T",  ["X","Y","Z"], -100,  100, "Translation", [3.3,-0.2,-88.1], "updateCamera()")
+            cp.innerHTML += generateSliders("R",  ["X","Y","Z"], -180,  180, "Rotation",   [-71,-3,-120],   "updateCamera()")
             cp.innerHTML += generateSliders("S",  ["X","Y","Z"], 0.001, 5,   "Scale",       null,        "updateCamera()")
 
             let lp = getById("light_parameters")
@@ -103,6 +105,8 @@
         let engine       = null
         let needRestart  = false
         let cameraMatrices = null
+        let light_marker = null
+        let params = {}
 
         function restart(){
             console.log("Restarting...")
@@ -111,13 +115,15 @@
 
         function start(){
             needRestart = false
-            engine = new RenderingEngine(getById("canvas"), getById("depth_test").checked, getDepthFunction())
-            engine.createProgram(Shaders.vertex, Shaders.fragment)
-            engine.createLightFramebufferProgram(lightsBufferShaders.vertex, lightsBufferShaders.fragment)
+            params.depth_test_function = getDepthFunction()
+
+            engine = new RenderingEngine(getById("canvas"), Shaders, lightsBufferShaders, params)
             engine.addObject(Plane)
-            engine.addObject(Cube, [0,0,9])
-            engine.addObject(Cube, [3,5,5])
-            engine.addObject(Cube, [-12,0,5])
+            engine.addObject(Cube, [0,2,1])
+            engine.addObject(Cube, [2,0,1])
+            engine.addObject(Cube, [0,-2,2])
+            engine.addObject(Cube, [-2,0,1])
+            light_marker = engine.addObject(Light_marker, [0,0,0])
             updateCamera()
             render(0)
         }
@@ -137,8 +143,9 @@
             engine.setDirectionalLight(getDirLightColor(), getDirLightPos())
             engine.setPointLight(getPointLightColor(), getPointLightPos())
             engine.setConeLight(getConeLightColor(), getConeLightPos(), getConeLightDir())
+            engine.setObjectTransform(light_marker, getConeLightPos())
 
-            engine.render()
+            lightview = engine.render()
             needRestart ? start() : requestAnimationFrame(render)
         }
 
@@ -148,8 +155,8 @@
                 [getValue("RX"), getValue("RY"), getValue("RZ")],
                 [getValue("SX"), getValue("SY"), getValue("SZ")]
             )
-            printMatrix(getById("projection_matrix"), cameraMatrices.projection, "Projection Matrix", `overrideMatrix('${engine.matrices.projection}', this)`)
-            printMatrix(getById("view_matrix"),       cameraMatrices.view,       "View Matrix",       `overrideMatrix('${engine.matrices.view}', this)`)
+            printMatrix(getById("projection_matrix"), cameraMatrices.projection, "Projection Matrix", `overrideMatrix('${engine.matrices_names.projection}', this)`)
+            printMatrix(getById("view_matrix"),       cameraMatrices.view,       "View Matrix",       `overrideMatrix('${engine.matrices_names.view}', this)`)
         }
 
         function printObjects(objs){
@@ -163,7 +170,7 @@
                             <div id="objects_details_${i}_matrix"></div>
                         </details>`
                 }
-                printMatrix(getById(`objects_details_${i}_matrix`), obj.modelMatrix, "Model matrix", `overrideMatrix('${engine.matrices.model}', this, ${i})`)
+                printMatrix(getById(`objects_details_${i}_matrix`), obj.modelMatrix, "Model matrix", `overrideMatrix('${engine.matrices_names.model}', this, ${i})`)
             })
         }
 
