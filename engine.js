@@ -96,7 +96,7 @@ class RenderingEngine{
 
   addObject(obj, position=[0,0,0], rotation=[0,0,0], scale=[1,1,1]){
     // Note : is it possible to not repeat the points that are at the same place (ex : only 8 vertex for a cube) ?
-    const converted = processBuffers(obj)
+    const converted = ModelHelper.modelToBuffers(obj)
     const vao = this.gl.createVertexArray()
     this.gl.bindVertexArray(vao)
     this.createBuffer(converted.positions, "aVertexPosition", 3)

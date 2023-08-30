@@ -33,13 +33,12 @@ const Shaders = {
         vec4 modelPosition = uMatrixModel * aVertexPosition;
         gl_Position = uMatrixProjection * uMatrixView * modelPosition;
 
-        // Sent to Fragment Shader
         vColor        = aVertexColor;
         vTextureCoord = aTextureCoord;
 
         vShadowMapCoord =  uMatrixShadowMap * modelPosition;
         vNormal = mat3(transpose(inverse(uMatrixView))) * aVertexNormal;
-        vSurfaceToCam       = (uMatrixView * aVertexPosition).xyz;
+        vSurfaceToCam       = (uMatrixView * -aVertexPosition).xyz;
         vSurfaceToLight     = mat3(uMatrixView) * (uLightPointPosition - aVertexPosition.xyz);
         vSurfaceToConeLight = mat3(uMatrixView) * (uLightConePosition  - aVertexPosition.xyz);
         vSurfaceToDirLight  = mat3(uMatrixView) * (-uLightDirectionalDirection);
@@ -78,6 +77,8 @@ const Shaders = {
     const float coneLighEffectSmoothLow  = 0.48;
     const float coneLighEffectSmoothHigh = 0.55;
     const float shadowReduce = 0.3;
+    const float specularPower = 50.0;
+    const vec3 specularColor = vec3(1.0,0.0,0.0);
 
     float cappedAngleWithNormal(vec3 vector) {
         return max(dot(normalize(vNormal), vector), 0.0);
@@ -100,11 +101,7 @@ const Shaders = {
         color = vec4( (vColor.rgb + texture(uTexture, vTextureCoord).rgb) * lightingFactor, vColor.a);
 
         float specular = cappedAngleWithNormal(normalize(vnSurfaceToLight+vnSurfaceToCam));
-        //colors.rgb += pow(specular, 50.0) * vec3(1.0,0.0,0.0);
-
-
-        //colors = (-projectedTexcoord.z > 1.0 || -projectedTexcoord.z < 0.0) ? vec4(0.0,1.0,0.0,1.0) : colors;
-        //colors = (texture(uTexture, projectedTexcoord.xy).r > 1.0 || texture(uTexture, projectedTexcoord.xy).r < 0.0) ? vec4(0.0,0.0,1.0,1.0) : colors;
+        color.rgb += pow(specular, specularPower) * specularColor;
 
         vec3 shadowMapCoord = vShadowMapCoord.xyz / vShadowMapCoord.w;
         bool isInShadow = texture(uShadowMap, shadowMapCoord.xy).r < shadowMapCoord.z + shadow_bias ;

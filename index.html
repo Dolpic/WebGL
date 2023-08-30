@@ -7,6 +7,7 @@
         <script src="engine.js"></script>
         <script src="utils.js"></script>
 
+        <script src="ModelHelper.js"></script>
         <script src="shapes/Cube.js"></script>
         <script src="shapes/Pyramid.js"></script>
         <script src="shapes/Plane.js"></script>
@@ -123,6 +124,7 @@
             engine.addObject(Cube, [2,0,1])
             engine.addObject(Cube, [0,-2,2])
             engine.addObject(Cube, [-2,0,1])
+            ModelHelper.loadWavefront("/models/dragon/dragon.obj", "").then((obj) => engine.addObject(obj))
             light_marker = engine.addObject(Light_marker, [0,0,0])
             updateCamera()
             render(0)
