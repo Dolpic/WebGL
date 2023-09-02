@@ -1,3 +1,6 @@
+import "./utils.js"
+import "./gl-matrix.js"
+
 class RenderingEngine{
   constructor(canvas, shader, shadowMapShader, params={}){
       if (! (this.gl = canvas.getContext("webgl2")) ){
@@ -14,7 +17,9 @@ class RenderingEngine{
       this.objects = []
       this.lights  = []
       this.texture_counter = 0
+
       this.skybox = null
+      this.camera = null
 
       this.matrices_names = {
         model:     "uMatrixModel",
@@ -60,6 +65,7 @@ class RenderingEngine{
   }
 
   createTexture(image, location_name, with_mipmap=true, depth_texture=false){
+    let inital_program = this.gl.getParameter(this.gl.CURRENT_PROGRAM)
     const texture = this.gl.createTexture()
     this.gl.activeTexture(this.gl["TEXTURE"+this.texture_counter])
     this.gl.bindTexture(this.gl.TEXTURE_2D, texture)
@@ -76,6 +82,7 @@ class RenderingEngine{
     this.gl.useProgram(this.program)
     this.gl.uniform1i(this.gl.getUniformLocation(this.program, location_name), this.texture_counter)
     this.texture_counter++ // TODO : Should add a warning if no more texture can be created
+    this.gl.useProgram(inital_program)
     return texture
   }
 
@@ -124,25 +131,30 @@ class RenderingEngine{
   }
 
   setCamera(position=[0,0,0], rotation=[0,0,0], scale=[1,1,1], fov=45, zNear=0.1, zFar=200.0){
+    this.gl.useProgram(this.program)
     const project = glMatrix.mat4.create()
     glMatrix.mat4.perspective(project, fov*Math.PI/180, this.aspectRatio, zNear, zFar)
     const view = createTransformMatrix(position, rotation, scale)
     //glMatrix.mat4.invert(view, view) // The view matrix is the inverse of the camera matrix
     this.setMatrix(this.matrices_names.projection, project)
     this.setMatrix(this.matrices_names.view, view)
-    return {projection:project, view:view}
+    this.camera = {projection:project, view:view}
+    return this.camera
   }
 
   setAmbientLight(color=[1,1,1]){
+    this.gl.useProgram(this.program)
     this.gl.uniform3fv(this.gl.getUniformLocation(this.program, 'uLightAmbientColor'), color)
   }
 
   setDirectionalLight(color=[0,0,0], direction=[0,0,-1]){
+    this.gl.useProgram(this.program)
     this.gl.uniform3fv(this.gl.getUniformLocation(this.program, 'uLightDirectionalColor'),     color)
     this.gl.uniform3fv(this.gl.getUniformLocation(this.program, 'uLightDirectionalDirection'), direction)
   }
 
   setPointLight(color=[0,0,0], position=[0,0,-1]){
+    this.gl.useProgram(this.program)
     this.gl.uniform3fv(this.gl.getUniformLocation(this.program, 'uLightPointColor'),    color)
     this.gl.uniform3fv(this.gl.getUniformLocation(this.program, 'uLightPointPosition'), position)
   }
@@ -151,6 +163,7 @@ class RenderingEngine{
     let view = createTransformMatrix([0,0,0], direction)
     glMatrix.mat4.invert(view, view)
     let real_dir = [view[2],view[6],view[10]]
+    this.gl.useProgram(this.program)
     this.gl.uniform3fv(this.gl.getUniformLocation(this.program, 'uLightConeColor'),     color)
     this.gl.uniform3fv(this.gl.getUniformLocation(this.program, 'uLightConePosition'),  position)
     this.gl.uniform3fv(this.gl.getUniformLocation(this.program, 'uLightConeDirection'), real_dir)
@@ -185,16 +198,12 @@ class RenderingEngine{
     this.texture_counter++ // TODO : Should add a warning if no more texture can be created
   }
 
-  setSkybox(shaders, folder, projectMatrix){
+  setSkybox(shaders, folder){
     this.skyboxProgram = this.createProgram(shaders)
     const vao = this.gl.createVertexArray()
     this.gl.bindVertexArray(vao)
     this.createBuffer([-1,1,1, 1,1,1, -1,-1,1, 1,1,1, 1,-1,1, -1,-1,1], "aVertexPosition", 3, false, this.skyboxProgram)
     this.skybox = vao
-
-    let inverseProjection = glMatrix.mat4.create()
-    glMatrix.mat4.invert(inverseProjection, projectMatrix)
-    this.setMatrix("uInverseProjection", inverseProjection)
 
     let texture = this.gl.createTexture()
     this.gl.bindTexture(this.gl.TEXTURE_CUBE_MAP, texture)
@@ -260,6 +269,9 @@ class RenderingEngine{
 
       if(this.skybox != null){
         this.gl.useProgram(this.skyboxProgram)
+        let viewProjection = glMatrix.mat4.create()
+        glMatrix.mat4.multiply(viewProjection, this.camera.projection, this.camera.view)
+        this.setMatrix("uViewProjection", viewProjection)
         this.gl.bindVertexArray(this.skybox)
         this.gl.drawArrays(this.gl.TRIANGLES, 0, 6)
       }
@@ -267,3 +279,5 @@ class RenderingEngine{
     }
   }
 }
+
+export default RenderingEngine

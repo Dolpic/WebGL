@@ -1,4 +1,4 @@
-const Shaders = {
+export default {
     vertex : `#version 300 es
 
     in vec4 aVertexPosition;
@@ -113,46 +113,5 @@ const Shaders = {
         //colors = vec4( texture(uTexture, projectedTexcoord.xy).rrr , 1.0);
         //float grey = projectedTexcoord.z;
         //colors = vec4( grey,grey,grey, 1.0);
-    }`
-}
-
-const lightsBufferShaders = {
-    vertex : `#version 300 es
-    in vec4 aVertexPosition;
-    uniform mat4 uMatrixModel;
-    uniform mat4 uMatrixView;
-    uniform mat4 uMatrixProjection;
-    out float vDepth;
-    out vec2 position;
-    void main() {
-        gl_Position = uMatrixProjection * uMatrixView * uMatrixModel * aVertexPosition;
-        vDepth = (gl_Position.z+1.0)/2.0;
-    }`,
-    fragment : `#version 300 es
-    precision highp float;
-    in lowp float vDepth;
-    out vec4 colors;
-    void main() {
-        colors = vec4(vDepth, vDepth, vDepth, 1.0);
-    }`
-}
-
-const skyBoxShaders = {
-    vertex : `#version 300 es
-    in vec4 aVertexPosition;
-    out float vDepth;
-    out vec4 position;
-    void main() {
-        gl_Position = aVertexPosition;
-        position = gl_Position;
-    }`,
-    fragment : `#version 300 es
-    precision highp float;
-    in vec4 position;
-    uniform mat4 uInverseProjection;
-    uniform samplerCube uCubemap;
-    out vec4 color;
-    void main() {
-        color = texture(uCubemap, (uInverseProjection*position).xyz);
     }`
 }

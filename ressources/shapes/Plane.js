@@ -1,4 +1,4 @@
-const Plane = {
+export default {
     vertices : [
         -10.0, -10.0, 0.0,
          10.0, -10.0, 0.0,
@@ -21,7 +21,7 @@ const Plane = {
         0.0, 1.0, 0.0, 1.0,
         0.0, 0.0, 1.0, 1.0,
     ],
-    texture : "wood.jpg",
+    texture : "ressources/textures/wood.jpg",
     texture_coord : [
         0,0,
         1,0,

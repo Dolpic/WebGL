@@ -2,16 +2,16 @@
 <html>
     <head>
         <link rel="stylesheet" href="style.css">
-        <script src="inc/gl-matrix.js"></script>
-        <script src="shaders.js"></script>
-        <script src="engine.js"></script>
-        <script src="utils.js"></script>
-
-        <script src="ModelHelper.js"></script>
-        <script src="shapes/Cube.js"></script>
-        <script src="shapes/Pyramid.js"></script>
-        <script src="shapes/Plane.js"></script>
-        <script src="shapes/Light_marker.js"></script>
+        <script src="js/utils.js"></script>
+        <script src="js/ModelHelper.js"></script>
+        <script type="module">
+            import Shaders from "./shaders/module.js"
+            import Engine  from "./js/engine/engine.js"
+            import Shapes  from "./ressources/shapes/module.js"
+            document.Shaders = Shaders
+            document.Engine  = Engine
+            document.Shapes  = Shapes
+        </script>
     </head>
     <body onload="init();start()">
         <div id="parameters" class="panel">
@@ -61,8 +61,8 @@
         function getValue(id){ return getById(id).value }
         function init(){
             let cp = getById("camera_parameters")
-            cp.innerHTML += generateSliders("T",  ["X","Y","Z"], -100,  100, "Translation", [3.3,-0.2,-88.1], "updateCamera()")
-            cp.innerHTML += generateSliders("R",  ["X","Y","Z"], -180,  180, "Rotation",   [-71,-3,-120],   "updateCamera()")
+            cp.innerHTML += generateSliders("T",  ["X","Y","Z"], -100,  100, "Translation", [0,0,-88], "updateCamera()")
+            cp.innerHTML += generateSliders("R",  ["X","Y","Z"], -180,  180, "Rotation",   [-71,0,-120],   "updateCamera()")
             cp.innerHTML += generateSliders("S",  ["X","Y","Z"], 0.001, 5,   "Scale",       null,        "updateCamera()")
 
             let lp = getById("light_parameters")
@@ -77,6 +77,19 @@
             lp.innerHTML += generateSliders("CL", ["R","G","B"], 0,     1,   "Cone light color")
             lp.innerHTML += generateSliders("CL", ["X","Y","Z"], -10,    10, "Cone light position")
             lp.innerHTML += generateSliders("CLD", ["X","Y","Z"], 0,    360, "Cone light direction")
+
+            Shaders        = document.Shaders
+            Shapes         = document.Shapes
+            Engine         = document.Engine
+
+            updateInterval = 30
+            previousTime   = 0
+            frameNumber    = 0
+            engine         = null
+            needRestart    = false
+            cameraMatrices = null
+            light_marker   = null
+            params         = {}
         }
 
         function getAmbiantLightColor(){ return [getValue("ALR"), getValue("ALG"), getValue("ALB")] }
@@ -100,15 +113,6 @@
             }
         }
 
-        const informationUpdateInterval = 30
-        let previousTime = 0
-        let frameNumber  = 0
-        let engine       = null
-        let needRestart  = false
-        let cameraMatrices = null
-        let light_marker = null
-        let params = {}
-
         function restart(){
             console.log("Restarting...")
             needRestart = true
@@ -118,20 +122,20 @@
             needRestart = false
             params.depth_test_function = getDepthFunction()
 
-            engine = new RenderingEngine(getById("canvas"), Shaders, lightsBufferShaders, params)
-            engine.addObject(Plane)
-            engine.addObject(Cube, [0,2,1])
-            engine.addObject(Cube, [2,0,1])
-            engine.addObject(Cube, [0,-2,2])
-            engine.addObject(Cube, [-2,0,1])
-            ModelHelper.loadWavefront("/models/dragon/dragon.obj", "").then((obj) => engine.addObject(obj))
-            light_marker = engine.addObject(Light_marker, [0,0,0])
+            engine = new Engine(getById("canvas"), Shaders.blinnPhong, Shaders.shadowMap, params)
+            engine.addObject(Shapes.Plane)
+            engine.addObject(Shapes.Cube, [0,2,1])
+            engine.addObject(Shapes.Cube, [2,0,1])
+            engine.addObject(Shapes.Cube, [0,-2,2])
+            engine.addObject(Shapes.Cube, [-2,0,1])
+            ModelHelper.loadWavefront("dragon/dragon.obj", "").then((obj) => engine.addObject(obj))
+            ModelHelper.loadWavefront("gizmo/gizmo.obj", "").then((obj) => engine.addObject(obj))
+            light_marker = engine.addObject(Shapes.LightMarker, [0,0,0])
 
-            engine.addObject(Cube, [0,0,0],[0,0,0],[1,1,1])
 
-            engine.setCubemap("cubemaps/field_sunset")
+            engine.setCubemap("ressources/cubemaps/field_sunset")
             let cameraMatrices = updateCamera()
-            engine.setSkybox(skyBoxShaders, "cubemaps/field_sunset", cameraMatrices.projection)
+            engine.setSkybox(Shaders.skybox, "ressources/cubemaps/field_sunset", cameraMatrices.projection)
             render(0)
         }
 
@@ -140,7 +144,7 @@
             const deltaTime = currentTime - previousTime
             previousTime = currentTime
 
-            if(frameNumber % informationUpdateInterval == 0){
+            if(frameNumber % updateInterval == 0){
                 getById("fps").innerHTML = Math.round(1000/deltaTime)
                 getById("refresh_rate").innerHTML = Math.round(deltaTime)+" ms"
                 printObjects(engine.objects)

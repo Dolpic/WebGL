@@ -1,7 +1,7 @@
 class ModelHelper{
     static async loadWavefront(obj_file_link, mtl_file_link=""){
         const utf8Decoder = new TextDecoder("utf-8")
-        const response = await fetch(obj_file_link)
+        const response = await fetch("/ressources/models/"+obj_file_link)
         const reader = response.body.getReader()
         let content = ""
         let {value: chunk, done:done } = await reader.read()
