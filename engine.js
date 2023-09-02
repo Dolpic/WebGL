@@ -14,11 +14,13 @@ class RenderingEngine{
       this.objects = []
       this.lights  = []
       this.texture_counter = 0
+      this.skybox = null
 
       this.matrices_names = {
         model:     "uMatrixModel",
         view:      "uMatrixView",
-        projection:"uMatrixProjection"
+        projection:"uMatrixProjection",
+        shadowMap: "uMatrixShadowMap"
       }
 
       this.program = this.createProgram(shader)
@@ -64,6 +66,8 @@ class RenderingEngine{
     if(depth_texture){
       const size = this.params.shadow_map_size
       this.gl.texImage2D(this.gl.TEXTURE_2D, 0, this.gl.DEPTH_COMPONENT32F, size, size, 0, this.gl.DEPTH_COMPONENT, this.gl.FLOAT, null)
+      this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MAG_FILTER, this.gl.NEAREST)
+      this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MIN_FILTER, this.gl.NEAREST)
     }else{
       this.gl.texImage2D(this.gl.TEXTURE_2D, 0, this.gl.RGBA, this.gl.RGBA, this.gl.UNSIGNED_BYTE, image)
     }
@@ -77,19 +81,18 @@ class RenderingEngine{
 
   createShadowmapFramebuffer(){
     const depthTexture = this.createTexture(null, "uShadowMap", false, true)
-    this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MAG_FILTER, this.gl.NEAREST)
-    this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MIN_FILTER, this.gl.NEAREST)
     const lightFramebuffer = this.gl.createFramebuffer()
     this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, lightFramebuffer)
     this.gl.framebufferTexture2D(this.gl.FRAMEBUFFER, this.gl.DEPTH_ATTACHMENT, this.gl.TEXTURE_2D, depthTexture, 0)
     return lightFramebuffer
   }
 
-  createBuffer(data, location_name, nbComponents, normalize=false){
+  createBuffer(data, location_name, nbComponents, normalize=false, program=this.program){
     //this.debugProgram(this.program)
+    this.gl.useProgram(program)
     this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.gl.createBuffer())
     this.gl.bufferData(this.gl.ARRAY_BUFFER, new Float32Array(data), this.gl.STATIC_DRAW) // Note : change this if the shape changes dynamically
-    const location = this.gl.getAttribLocation(this.program, location_name)
+    const location = this.gl.getAttribLocation(program, location_name)
     this.gl.enableVertexAttribArray(location)
     this.gl.vertexAttribPointer(location, nbComponents, this.gl.FLOAT, normalize, 0, 0)
   }
@@ -104,9 +107,7 @@ class RenderingEngine{
     this.createBuffer(converted.normals,   "aVertexNormal",   3)
     if(obj.texture != null){
       this.createBuffer(converted.texture_coord, "aTextureCoord", 2, true)
-      let image = new Image()
-      image.src = obj.texture
-      image.onload = () => this.createTexture(image, "uTexture")
+      loadImage(obj.texture, image => this.createTexture(image, "uTexture"))
     }
     let new_obj = {vao:vao, count:converted.count}
     this.setObjectTransform(new_obj, position, rotation, scale)
@@ -157,6 +158,73 @@ class RenderingEngine{
     this.lightDirection = direction
   }
 
+  setCubemap(folder){
+    let texture = this.gl.createTexture()
+    this.gl.bindTexture(this.gl.TEXTURE_CUBE_MAP, texture)
+    this.gl.activeTexture(this.gl["TEXTURE"+this.texture_counter])
+    let faces = [
+      [this.gl.TEXTURE_CUBE_MAP_POSITIVE_X, "px.png"],
+      [this.gl.TEXTURE_CUBE_MAP_NEGATIVE_X, "nx.png"],
+      [this.gl.TEXTURE_CUBE_MAP_POSITIVE_Y, "py.png"],
+      [this.gl.TEXTURE_CUBE_MAP_NEGATIVE_Y, "ny.png"],
+      [this.gl.TEXTURE_CUBE_MAP_POSITIVE_Z, "pz.png"],
+      [this.gl.TEXTURE_CUBE_MAP_NEGATIVE_Z, "nz.png"]
+    ]
+    let completed = 0
+    faces.forEach(face => {
+      loadImage(folder+"/"+face[1], img => {
+        this.gl.bindTexture(this.gl.TEXTURE_CUBE_MAP, texture)
+        this.gl.texImage2D(face[0], 0, this.gl.RGBA, 512, 512, 0, this.gl.RGBA, this.gl.UNSIGNED_BYTE, img)
+        if(++completed==6){
+          this.gl.generateMipmap(this.gl.TEXTURE_CUBE_MAP)
+          this.gl.texParameteri(this.gl.TEXTURE_CUBE_MAP, this.gl.TEXTURE_MIN_FILTER, this.gl.LINEAR_MIPMAP_LINEAR)
+        }
+      })
+    })
+    this.gl.uniform1i(this.gl.getUniformLocation(this.program, "uCubemap"), this.texture_counter)
+    this.texture_counter++ // TODO : Should add a warning if no more texture can be created
+  }
+
+  setSkybox(shaders, folder, projectMatrix){
+    this.skyboxProgram = this.createProgram(shaders)
+    const vao = this.gl.createVertexArray()
+    this.gl.bindVertexArray(vao)
+    this.createBuffer([-1,1,1, 1,1,1, -1,-1,1, 1,1,1, 1,-1,1, -1,-1,1], "aVertexPosition", 3, false, this.skyboxProgram)
+    this.skybox = vao
+
+    let inverseProjection = glMatrix.mat4.create()
+    glMatrix.mat4.invert(inverseProjection, projectMatrix)
+    this.setMatrix("uInverseProjection", inverseProjection)
+
+    let texture = this.gl.createTexture()
+    this.gl.bindTexture(this.gl.TEXTURE_CUBE_MAP, texture)
+    this.gl.activeTexture(this.gl["TEXTURE"+this.texture_counter])
+    let faces = [
+      [this.gl.TEXTURE_CUBE_MAP_POSITIVE_X, "px.png"],
+      [this.gl.TEXTURE_CUBE_MAP_NEGATIVE_X, "nx.png"],
+      [this.gl.TEXTURE_CUBE_MAP_POSITIVE_Y, "py.png"],
+      [this.gl.TEXTURE_CUBE_MAP_NEGATIVE_Y, "ny.png"],
+      [this.gl.TEXTURE_CUBE_MAP_POSITIVE_Z, "pz.png"],
+      [this.gl.TEXTURE_CUBE_MAP_NEGATIVE_Z, "nz.png"]
+    ]
+    let completed = 0
+    faces.forEach(face => {
+      loadImage(folder+"/"+face[1], img => {
+        this.gl.bindTexture(this.gl.TEXTURE_CUBE_MAP, texture)
+        this.gl.texImage2D(face[0], 0, this.gl.RGBA, 512, 512, 0, this.gl.RGBA, this.gl.UNSIGNED_BYTE, img)
+        if(++completed==6){
+          this.gl.generateMipmap(this.gl.TEXTURE_CUBE_MAP)
+          this.gl.texParameteri(this.gl.TEXTURE_CUBE_MAP, this.gl.TEXTURE_MIN_FILTER, this.gl.LINEAR_MIPMAP_LINEAR)
+        }
+      })
+    })
+    this.gl.uniform1i(this.gl.getUniformLocation(this.program, "uCubemap"), this.texture_counter)
+    this.texture_counter++ // TODO : Should add a warning if no more texture can be created
+
+
+    this.gl.useProgram(this.program)
+  }
+
   drawObjects(){
     this.gl.clear(this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT)
     this.objects.forEach(obj => {
@@ -167,9 +235,9 @@ class RenderingEngine{
   }
 
   render() {
+    this.gl.useProgram(this.shadowMapProgram)
     this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, this.params.show_shadow_map ? null : this.lightFramebuffer)
     this.gl.viewport(0, 0, this.params.shadow_map_size, this.params.shadow_map_size)
-    this.gl.useProgram(this.shadowMapProgram)
 
     let view = createTransformMatrix(this.lightPosition, this.lightDirection)
     glMatrix.mat4.invert(view, view)
@@ -180,18 +248,22 @@ class RenderingEngine{
     this.drawObjects()
 
     if(!this.params.show_shadow_map){
+      this.gl.useProgram(this.program)
       this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, null)
       this.gl.viewport(0, 0, this.gl.canvas.width, this.gl.canvas.height)
-      this.gl.useProgram(this.program)
 
-      const lightMatrix = glMatrix.mat4.create()
-      glMatrix.mat4.identity(lightMatrix)
-      glMatrix.mat4.translate(lightMatrix, lightMatrix, [0.5,0.5,0.5])
-      glMatrix.mat4.scale(lightMatrix,lightMatrix, [0.5,0.5,0.5])
+      const lightMatrix = createTransformMatrix([0.5,0.5,0.5], [0,0,0], [0.5,0.5,0.5])
       glMatrix.mat4.multiply(lightMatrix, lightMatrix, project)
       glMatrix.mat4.multiply(lightMatrix, lightMatrix, view)
-      this.setMatrix("uMatrixShadowMap", lightMatrix)
+      this.setMatrix(this.matrices_names.shadowMap, lightMatrix)
       this.drawObjects()
+
+      if(this.skybox != null){
+        this.gl.useProgram(this.skyboxProgram)
+        this.gl.bindVertexArray(this.skybox)
+        this.gl.drawArrays(this.gl.TRIANGLES, 0, 6)
+      }
+
     }
   }
 }

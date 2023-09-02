@@ -8,6 +8,12 @@ function createTransformMatrix(position, rotation, scale=[1,1,1]){
     return model
 }
 
+function loadImage(src, callback){
+    let img = new Image()
+    img.src = src
+    img.onload = () => callback(img)
+}
+
 function setDefaultParams(params){
     let result = {}
     let defaults = {

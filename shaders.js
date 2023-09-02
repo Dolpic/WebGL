@@ -65,6 +65,7 @@ const Shaders = {
 
     uniform sampler2D uTexture;
     uniform sampler2D uShadowMap;
+    uniform samplerCube uCubemap;
 
     uniform vec3 uLightAmbientColor;
     uniform vec3 uLightDirectionalColor;
@@ -107,6 +108,8 @@ const Shaders = {
         bool isInShadow = texture(uShadowMap, shadowMapCoord.xy).r < shadowMapCoord.z + shadow_bias ;
         color = vec4(isInShadow ? color.rgb*shadowReduce : color.rgb, color.a);
 
+        color = 0.7*color + 0.3*texture(uCubemap, reflect(-vnSurfaceToCam, normalize(vNormal)));
+
         //colors = vec4( texture(uTexture, projectedTexcoord.xy).rrr , 1.0);
         //float grey = projectedTexcoord.z;
         //colors = vec4( grey,grey,grey, 1.0);
@@ -131,5 +134,25 @@ const lightsBufferShaders = {
     out vec4 colors;
     void main() {
         colors = vec4(vDepth, vDepth, vDepth, 1.0);
+    }`
+}
+
+const skyBoxShaders = {
+    vertex : `#version 300 es
+    in vec4 aVertexPosition;
+    out float vDepth;
+    out vec4 position;
+    void main() {
+        gl_Position = aVertexPosition;
+        position = gl_Position;
+    }`,
+    fragment : `#version 300 es
+    precision highp float;
+    in vec4 position;
+    uniform mat4 uInverseProjection;
+    uniform samplerCube uCubemap;
+    out vec4 color;
+    void main() {
+        color = texture(uCubemap, (uInverseProjection*position).xyz);
     }`
 }

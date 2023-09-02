@@ -126,7 +126,12 @@
             engine.addObject(Cube, [-2,0,1])
             ModelHelper.loadWavefront("/models/dragon/dragon.obj", "").then((obj) => engine.addObject(obj))
             light_marker = engine.addObject(Light_marker, [0,0,0])
-            updateCamera()
+
+            engine.addObject(Cube, [0,0,0],[0,0,0],[1,1,1])
+
+            engine.setCubemap("cubemaps/field_sunset")
+            let cameraMatrices = updateCamera()
+            engine.setSkybox(skyBoxShaders, "cubemaps/field_sunset", cameraMatrices.projection)
             render(0)
         }
 
@@ -159,6 +164,7 @@
             )
             printMatrix(getById("projection_matrix"), cameraMatrices.projection, "Projection Matrix", `overrideMatrix('${engine.matrices_names.projection}', this)`)
             printMatrix(getById("view_matrix"),       cameraMatrices.view,       "View Matrix",       `overrideMatrix('${engine.matrices_names.view}', this)`)
+            return cameraMatrices
         }
 
         function printObjects(objs){
