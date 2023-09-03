@@ -1,77 +1,70 @@
-function createTransformMatrix(position, rotation, scale=[1,1,1]){
-    const model = glMatrix.mat4.create()
-    glMatrix.mat4.translate(model, model, position)
-    glMatrix.mat4.rotateX(  model, model, rotation[0]*Math.PI/180)
-    glMatrix.mat4.rotateY(  model, model, rotation[1]*Math.PI/180)
-    glMatrix.mat4.rotateZ(  model, model, rotation[2]*Math.PI/180)
-    glMatrix.mat4.scale(    model, model, scale)
-    return model
+function getById(id) { return document.getElementById(id) }
+function getValue(id){ return getById(id).value }
+function setValue(id, value){ getById(id).value = value}
+function getChildren(id){ return Array.from(getById(id).children) }
+
+
+function getTransformSlidersValues(id){
+    return [
+        [getValue(id+"_TX"), getValue(id+"_TY"), getValue(id+"_TZ")], 
+        [getValue(id+"_RX"), getValue(id+"_RY"), getValue(id+"_RZ")], 
+        [getValue(id+"_SX"), getValue(id+"_SY"), getValue(id+"_SZ")]
+    ]
+}
+/*function setTransformSlidersValues(id, vals){
+    setValue(id+"_TX",vals[0]);setValue(id+"_TY",vals[1]);setValue(id+"_TZ",vals[2])
+    setValue(id+"_RX",vals[3]);setValue(id+"_RY",vals[4]);setValue(id+"_RZ",vals[5]) 
+    setValue(id+"_SX",vals[6]);setValue(id+"_SY",vals[7]);setValue(id+"_SZ",vals[8])
+}*/
+function generateTransformSliders(id, changeCallback, values=[[0,0,0],[0,0,0],[1,1,1]]){
+    return (
+        generateSliders(id+"_T",  ["X","Y","Z"], -100,  100, "Translation", values[0], changeCallback) +
+        generateSliders(id+"_R",  ["X","Y","Z"], -180,  180, "Rotation",    values[1], changeCallback) +
+        generateSliders(id+"_S",  ["X","Y","Z"], 0.001, 5,   "Scale",       values[2], changeCallback)
+    )
 }
 
-function loadImage(src, callback){
-    let img = new Image()
-    img.src = src
-    img.onload = () => callback(img)
+function getMatrixValues(id){
+    let values = []
+    getById(id+"_matrix").querySelectorAll("input").forEach(e => values.push(parseFloat(e.value)))
+    return values
 }
-
-function setDefaultParams(params){
-    let result = {}
-    let defaults = {
-        "depth_test": true,
-        "depth_test_function": WebGL2RenderingContext.LEQUAL,
-        "clear_color": [0.0, 0.0, 0.0, 1.0],
-        "clear_depth": 1.0,
-        "show_shadow_map" : false,
-        "shadow_map_size" : 512
-    }
-    for(const prop in defaults){
-        result[prop] = params.hasOwnProperty(prop) ? params[prop] : defaults[prop]
-    }
-    return result
+function setMatrixValues(id, values){
+    getById(id+"_matrix").querySelectorAll("input").forEach((e,i) => e.value = values[i].toFixed(2))
 }
-
-function printDebugProgram(gl, program){
-    console.log("Program informations :")
-    console.log("Attributes : ")
-    for(let i=0; i<gl.getProgramParameter(program, gl.ACTIVE_ATTRIBUTES); i++){
-      console.log(gl.getActiveAttrib(program, i))
-    }
-    console.log("Uniforms : ")
-    for(let i=0; i<gl.getProgramParameter(program, gl.ACTIVE_UNIFORMS); i++){
-      console.log(gl.getActiveUniform(program, i))
-    }
-    console.log("Shaders : ")
-    console.log(gl.getAttachedShaders(program))
-  }
-
-function printMatrix(container, matrix, title="", callback=""){
-    function line(v){
-        return `<td><input value=${v} oninput="${callback}"></input></td>`
-    }
-    function row(m, i){
-        return `<tr>${line(m[i])}${line(m[i+1])}${line(m[i+2])}${line(m[i+3])}</tr>`
-    }
+function generateMatrix(id, changeCallback="", values=[1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1]){
+    function line(v){ return `<td><input value=${v} oninput="${changeCallback}"></input></td>` }
+    function row(m, i){ return `<tr>${line(m[i])}${line(m[i+1])}${line(m[i+2])}${line(m[i+3])}</tr>` }
     let m = []
-    matrix.forEach((e,i) => m[i] = e.toFixed(2))
-    if(container.innerHTML == ""){
-        container.innerHTML=`
-        <h3>${title}</h3>
-        <table class='printedMatrix'>
-            ${row(m,0)}${row(m,4)}${row(m,8)}${row(m,12)}
-        </table>`
-    }else{
-        inputs = container.querySelectorAll("input")
-        inputs.forEach((e,i) => e.value = m[i])
-    }
+    values.forEach((e,i) => m[i] = e.toFixed(2))
+    return `<table id='${id}_matrix' class='printedMatrix'>${row(m,0)}${row(m,4)}${row(m,8)}${row(m,12)}</table>`
 }
 
-function generateSliders(prefix, suffixes, min, max, title, default_values = null, add_on_input="", step=0.0001){
-    let result = `<details><summary>${title}</summary><table>`
+function selectTab(tab, tab_selected, tabs_name){
+    getChildren(tabs_name+"_content").forEach(child => {
+        child.style.display = child.id == tab_selected ? "inline-block" : "none"
+    })
+    getChildren(tabs_name).forEach(child => {
+        child === tab ? child.classList.add("selectedTab") : child.classList.remove("selectedTab")
+    })
+}
+function generateTabs(tabName, names_content){
+    result = `<div id="${tabName}" class="tabs_list">`
+    names_content.forEach(elem => {
+        result += `<div onclick="selectTab(this, '${tabName}_${elem[0]}', '${tabName}')">${elem[0]}</div>`
+    })
+    result += `</div><div id="${tabName}_content" class="tabs_content">`
+    names_content.forEach(elem => result += `<div id="${tabName}_${elem[0]}">${elem[1]}</div>`)
+    return result + `</div>`
+}
+
+function generateSliders(prefix, suffixes, min, max, title, default_values=null, on_input_func="", step=0.0001){
+    let result = `<span>${title}</span><table>`
     suffixes.forEach( (e,i) =>{
         let id = prefix+e
         let value = default_values == null ? (max+min)/2 : default_values[i]
         let id_value = id+"_value"
-        let on_input = `getById('${id_value}').innerHTML = parseFloat(getById('${id}').value).toFixed(2);${add_on_input}`
+        let on_input = `getById('${id_value}').innerHTML = parseFloat(getById('${id}').value).toFixed(2);${on_input_func}`
 
         result += `
         <tr>
@@ -82,7 +75,6 @@ function generateSliders(prefix, suffixes, min, max, title, default_values = nul
             <td id="${id_value}">${value.toFixed(2)}</td>
         </tr>`
     })
-    result += "</table></details>"
+    result += "</table><hr>"
     return result
 }
-

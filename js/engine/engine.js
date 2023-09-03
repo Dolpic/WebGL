@@ -1,4 +1,4 @@
-import "./utils.js"
+import * as Utils from "./utils.js"
 import "./gl-matrix.js"
 
 class RenderingEngine{
@@ -7,7 +7,7 @@ class RenderingEngine{
         alert("WebGL2 is not supported on this browser")
       }
       this.aspectRatio = this.gl.canvas.clientWidth / this.gl.canvas.clientHeight
-      this.params = setDefaultParams(params)
+      this.params = Utils.setDefaultParams(params)
       this.gl.clearColor(...this.params.clear_color) 
       this.gl.clearDepth(this.params.clear_depth)
 
@@ -19,7 +19,7 @@ class RenderingEngine{
       this.texture_counter = 0
 
       this.skybox = null
-      this.camera = null
+      this.camera = {}
 
       this.matrices_names = {
         model:     "uMatrixModel",
@@ -104,7 +104,7 @@ class RenderingEngine{
     this.gl.vertexAttribPointer(location, nbComponents, this.gl.FLOAT, normalize, 0, 0)
   }
 
-  addObject(obj, position=[0,0,0], rotation=[0,0,0], scale=[1,1,1]){
+  addObject(obj, name, position=[0,0,0], rotation=[0,0,0], scale=[1,1,1]){
     // Note : is it possible to not repeat the points that are at the same place (ex : only 8 vertex for a cube) ?
     const converted = ModelHelper.modelToBuffers(obj)
     const vao = this.gl.createVertexArray()
@@ -114,16 +114,16 @@ class RenderingEngine{
     this.createBuffer(converted.normals,   "aVertexNormal",   3)
     if(obj.texture != null){
       this.createBuffer(converted.texture_coord, "aTextureCoord", 2, true)
-      loadImage(obj.texture, image => this.createTexture(image, "uTexture"))
+      Utils.loadImage(obj.texture, image => this.createTexture(image, "uTexture"))
     }
-    let new_obj = {vao:vao, count:converted.count}
+    let new_obj = {name:name.replace(" ","_"), vao:vao, count:converted.count}
     this.setObjectTransform(new_obj, position, rotation, scale)
     this.objects.push(new_obj)
     return new_obj
   }
 
   setObjectTransform(obj, position=[0,0,0], rotation=[0,0,0], scale=[1,1,1]){
-    obj.modelMatrix = createTransformMatrix(position, rotation, scale)
+    obj.modelMatrix = Utils.createTransformMatrix(position, rotation, scale)
   }
 
   setMatrix(name, value){
@@ -131,15 +131,23 @@ class RenderingEngine{
   }
 
   setCamera(position=[0,0,0], rotation=[0,0,0], scale=[1,1,1], fov=45, zNear=0.1, zFar=200.0){
+    this.setProjectionMatrix(fov, zNear, zFar)
+    this.setViewMatrix(position, rotation, scale)
+  }
+
+  setProjectionMatrix(fov=45, zNear=0.1, zFar=200.0){
     this.gl.useProgram(this.program)
     const project = glMatrix.mat4.create()
     glMatrix.mat4.perspective(project, fov*Math.PI/180, this.aspectRatio, zNear, zFar)
-    const view = createTransformMatrix(position, rotation, scale)
-    //glMatrix.mat4.invert(view, view) // The view matrix is the inverse of the camera matrix
+    this.camera.projection = project
     this.setMatrix(this.matrices_names.projection, project)
+  }
+
+  setViewMatrix(position=[0,0,0], rotation=[0,0,0], scale=[1,1,1]){
+    this.gl.useProgram(this.program)
+    const view = Utils.createTransformMatrix(position, rotation, scale)
+    this.camera.view = view
     this.setMatrix(this.matrices_names.view, view)
-    this.camera = {projection:project, view:view}
-    return this.camera
   }
 
   setAmbientLight(color=[1,1,1]){
@@ -160,7 +168,7 @@ class RenderingEngine{
   }
 
   setConeLight(color=[0,0,0], position=[0,0,-1], direction=[0,0,-1]){
-    let view = createTransformMatrix([0,0,0], direction)
+    let view = Utils.createTransformMatrix([0,0,0], direction)
     glMatrix.mat4.invert(view, view)
     let real_dir = [view[2],view[6],view[10]]
     this.gl.useProgram(this.program)
@@ -185,7 +193,7 @@ class RenderingEngine{
     ]
     let completed = 0
     faces.forEach(face => {
-      loadImage(folder+"/"+face[1], img => {
+      Utils.loadImage(folder+"/"+face[1], img => {
         this.gl.bindTexture(this.gl.TEXTURE_CUBE_MAP, texture)
         this.gl.texImage2D(face[0], 0, this.gl.RGBA, 512, 512, 0, this.gl.RGBA, this.gl.UNSIGNED_BYTE, img)
         if(++completed==6){
@@ -218,7 +226,7 @@ class RenderingEngine{
     ]
     let completed = 0
     faces.forEach(face => {
-      loadImage(folder+"/"+face[1], img => {
+      Utils.loadImage(folder+"/"+face[1], img => {
         this.gl.bindTexture(this.gl.TEXTURE_CUBE_MAP, texture)
         this.gl.texImage2D(face[0], 0, this.gl.RGBA, 512, 512, 0, this.gl.RGBA, this.gl.UNSIGNED_BYTE, img)
         if(++completed==6){
@@ -248,7 +256,7 @@ class RenderingEngine{
     this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, this.params.show_shadow_map ? null : this.lightFramebuffer)
     this.gl.viewport(0, 0, this.params.shadow_map_size, this.params.shadow_map_size)
 
-    let view = createTransformMatrix(this.lightPosition, this.lightDirection)
+    let view = Utils.createTransformMatrix(this.lightPosition, this.lightDirection)
     glMatrix.mat4.invert(view, view)
     this.setMatrix(this.matrices_names.view, view)
     let project = glMatrix.mat4.create()
@@ -261,7 +269,7 @@ class RenderingEngine{
       this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, null)
       this.gl.viewport(0, 0, this.gl.canvas.width, this.gl.canvas.height)
 
-      const lightMatrix = createTransformMatrix([0.5,0.5,0.5], [0,0,0], [0.5,0.5,0.5])
+      const lightMatrix = Utils.createTransformMatrix([0.5,0.5,0.5], [0,0,0], [0.5,0.5,0.5])
       glMatrix.mat4.multiply(lightMatrix, lightMatrix, project)
       glMatrix.mat4.multiply(lightMatrix, lightMatrix, view)
       this.setMatrix(this.matrices_names.shadowMap, lightMatrix)

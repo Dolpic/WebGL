@@ -33,18 +33,33 @@ canvas{
     height: 800px;
     border: 1px solid var(--dark);
 }
-summary h2{
-    display: inline-block;
-}
 #parameters input{
     display:block;
 }
 
 .panel{
     background-color: var(--darkblack);
-    padding: 0px 10px 0px 10px;
     border: 1px solid var(--dark);
 }
 .printedMatrix input{
     width:50px;
+}
+
+.tabs_list{
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-around;
+    align-items: center;
+    border-bottom: 1px solid var(--dark);
+    margin-bottom: 8px;
+}
+.tabs_list > div{
+    padding:8px;
+}
+.tabs_list .selectedTab{
+    background-color: var(--dark);
+}
+.tabs_content > div{
+    display:none;
+    padding: 0px 12px 0px 12px;
 }

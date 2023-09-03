@@ -16,21 +16,6 @@
     <body onload="init();start()">
         <div id="parameters" class="panel">
             <details>
-                <summary><h2>Parameters</h2></summary>
-                <details id="camera_parameters">
-                    <summary>Camera</summary>
-                </details>
-                <details id="light_parameters">
-                    <summary>Lights</summary>
-                </details>
-            </details>
-            <hr>
-            <details>
-                <summary><h2>Objects</h2></summary>
-                <div id="objects_details"></div>
-            </details>
-            <hr>
-            <details>
                 <summary><h2>Debug</h2></summary>
                 <table>
                     <tr><td>FPS : </td><td id="fps"></td></tr>
@@ -39,7 +24,7 @@
                 <input onchange="params.depth_test=this.checked;restart()" id="depth_test" type="checkbox" checked/><label>Enable depth testing</label>
                 <input onchange="params.show_shadow_map=this.checked;restart()" id="show_shadow_map" type="checkbox" unchecked/><label>Show shadow map</label>
                 <br>
-                <label>Depth function (test passes if the new depth value is X than the stored one)</label>
+                <label>Depth test function</label>
                 <select onchange="restart()" id="depth_func">
                     <option value="NEVER">Never</option>
                     <option value="ALWAYS">Always</option>
@@ -57,37 +42,35 @@
         <canvas id="canvas" width="800" height="800"></canvas>
     </body>    
     <script>
-        function getById(id) { return document.getElementById(id) }
-        function getValue(id){ return getById(id).value }
         function init(){
-            let cp = getById("camera_parameters")
-            cp.innerHTML += generateSliders("T",  ["X","Y","Z"], -100,  100, "Translation", [0,0,-88], "updateCamera()")
-            cp.innerHTML += generateSliders("R",  ["X","Y","Z"], -180,  180, "Rotation",   [-71,0,-120],   "updateCamera()")
-            cp.innerHTML += generateSliders("S",  ["X","Y","Z"], 0.001, 5,   "Scale",       null,        "updateCamera()")
+            let lightsContent = (
+                generateSliders("AL",  ["R","G","B"], 0,   1,   "Ambiant light color") +
+                generateSliders("DL",  ["R","G","B"], 0,   1,   "Directional light color") +
+                generateSliders("DL",  ["X","Y","Z"], -1,  1,   "Directional light direction") +
+                generateSliders("PL",  ["R","G","B"], 0,   1,   "Point light color") +
+                generateSliders("PL",  ["X","Y","Z"], -10, 10,  "Point light position") +
+                generateSliders("CL",  ["R","G","B"], 0,   1,   "Cone light color") +
+                generateSliders("CL",  ["X","Y","Z"], -10, 10,  "Cone light position") +
+                generateSliders("CLD", ["X","Y","Z"], 0,   360, "Cone light direction")
+            )
 
-            let lp = getById("light_parameters")
-            lp.innerHTML += generateSliders("AL", ["R","G","B"], 0,     1,   "Ambiant light color")
-
-            lp.innerHTML += generateSliders("DL", ["R","G","B"], 0,     1,   "Directional light color")
-            lp.innerHTML += generateSliders("DL", ["X","Y","Z"], -1,    1,   "Directional light direction")
-
-            lp.innerHTML += generateSliders("PL", ["R","G","B"], 0,     1,   "Point light color")
-            lp.innerHTML += generateSliders("PL", ["X","Y","Z"], -10,    10,   "Point light position")
-
-            lp.innerHTML += generateSliders("CL", ["R","G","B"], 0,     1,   "Cone light color")
-            lp.innerHTML += generateSliders("CL", ["X","Y","Z"], -10,    10, "Cone light position")
-            lp.innerHTML += generateSliders("CLD", ["X","Y","Z"], 0,    360, "Cone light direction")
+            let shadersContent = ""
+            let parameters = getById("parameters")
+            parameters.innerHTML = generateTabs("mainTab", [
+                ["View",    ""], 
+                ["Lights",  lightsContent], 
+                ["Objects", ""], 
+                ["Shaders", shadersContent]
+            ]) + parameters.innerHTML
 
             Shaders        = document.Shaders
             Shapes         = document.Shapes
             Engine         = document.Engine
-
             updateInterval = 30
             previousTime   = 0
             frameNumber    = 0
             engine         = null
             needRestart    = false
-            cameraMatrices = null
             light_marker   = null
             params         = {}
         }
@@ -122,20 +105,24 @@
             needRestart = false
             params.depth_test_function = getDepthFunction()
 
-            engine = new Engine(getById("canvas"), Shaders.blinnPhong, Shaders.shadowMap, params)
-            engine.addObject(Shapes.Plane)
-            engine.addObject(Shapes.Cube, [0,2,1])
-            engine.addObject(Shapes.Cube, [2,0,1])
-            engine.addObject(Shapes.Cube, [0,-2,2])
-            engine.addObject(Shapes.Cube, [-2,0,1])
-            ModelHelper.loadWavefront("dragon/dragon.obj", "").then((obj) => engine.addObject(obj))
-            ModelHelper.loadWavefront("gizmo/gizmo.obj", "").then((obj) => engine.addObject(obj))
-            light_marker = engine.addObject(Shapes.LightMarker, [0,0,0])
-
+            engine = new Engine(getById("canvas"), Shaders.blinnPhongShadowmap, Shaders.shadowMap, params)
+            engine.addObject(Shapes.Plane, "Ground")
+            engine.addObject(Shapes.Cube, "Cube_1", [0,2,1])
+            engine.addObject(Shapes.Cube, "Cube_2", [2,0,1])
+            engine.addObject(Shapes.Cube, "Cube_3", [0,-2,2])
+            engine.addObject(Shapes.Cube, "Cube_4", [-2,0,1])
+            ModelHelper.loadWavefront("dragon/dragon.obj", "").then((obj) => engine.addObject(obj, "Dragon"))
+            ModelHelper.loadWavefront("gizmo/gizmo.obj", "").then((obj) => engine.addObject(obj, "Gizmo"))
+            light_marker = engine.addObject(Shapes.LightMarker, "Light marker", [0,0,0])
 
             engine.setCubemap("ressources/cubemaps/field_sunset")
-            let cameraMatrices = updateCamera()
-            engine.setSkybox(Shaders.skybox, "ressources/cubemaps/field_sunset", cameraMatrices.projection)
+            updateView()
+            engine.setSkybox(Shaders.skybox, "ressources/cubemaps/field_sunset")
+
+            generateObjectsTab(engine.objects)
+            generateViewTab()
+            updateView(true)
+
             render(0)
         }
 
@@ -147,7 +134,6 @@
             if(frameNumber % updateInterval == 0){
                 getById("fps").innerHTML = Math.round(1000/deltaTime)
                 getById("refresh_rate").innerHTML = Math.round(deltaTime)+" ms"
-                printObjects(engine.objects)
             }
 
             engine.setAmbientLight(getAmbiantLightColor())
@@ -160,41 +146,51 @@
             needRestart ? start() : requestAnimationFrame(render)
         }
 
-        function updateCamera(){
-            cameraMatrices = engine.setCamera(
-                [getValue("TX"), getValue("TY"), getValue("TZ")],
-                [getValue("RX"), getValue("RY"), getValue("RZ")],
-                [getValue("SX"), getValue("SY"), getValue("SZ")]
-            )
-            printMatrix(getById("projection_matrix"), cameraMatrices.projection, "Projection Matrix", `overrideMatrix('${engine.matrices_names.projection}', this)`)
-            printMatrix(getById("view_matrix"),       cameraMatrices.view,       "View Matrix",       `overrideMatrix('${engine.matrices_names.view}', this)`)
-            return cameraMatrices
-        }
-
-        function printObjects(objs){
-            container = getById("objects_details")
-            objs.forEach( (obj, i) => {
-                if(getById("objects_details_"+i) == null){
-                    container.innerHTML += `
-                        <details id="objects_details_${i}">
-                            <summary>Object ${i}</summary>
-                            Number of triangles : ${obj.count}
-                            <div id="objects_details_${i}_matrix"></div>
-                        </details>`
-                }
-                printMatrix(getById(`objects_details_${i}_matrix`), obj.modelMatrix, "Model matrix", `overrideMatrix('${engine.matrices_names.model}', this, ${i})`)
-            })
-        }
-
-        function overrideMatrix(name, caller, object_id=null){
-            values = caller.parentElement.parentElement.parentElement.querySelectorAll("input")
-            matrix = []
-            values.forEach(e => matrix.push(parseFloat(e.value)))
-            if(object_id==null){
-                engine.setMatrix(name, matrix)
+        function updateView(fromSliders){
+            if(fromSliders){
+                engine.setViewMatrix(...getTransformSlidersValues("view"))
+                setMatrixValues("view", engine.camera.view)
             }else{
-                engine.objects[object_id].modelMatrix = matrix
+                const values = getMatrixValues("view")
+                engine.camera.view = values
+                engine.setMatrix(engine.matrices_names.view, values)
             }
+        }
+        function generateViewTab(){
+            getById("mainTab_View").innerHTML = (
+                generateTransformSliders("view", "updateView(true)", [[0,0,-26],[-71,0,-120],[1,1,1]]) +
+                generateMatrix("view", `updateView(false)`, engine.camera.view) 
+            )
+        }
+
+        function updateObject(obj_name, fromSliders){
+            if(fromSliders){
+                let obj_found = null 
+                engine.objects.forEach(obj => {
+                    if(obj.name == obj_name) {
+                        obj_found = obj
+                        engine.setObjectTransform(obj, ...getTransformSlidersValues(obj_name))
+                    }
+                })
+                setMatrixValues(obj_name, obj_found.modelMatrix)
+            }else{
+                let values = getMatrixValues(obj_name)
+                engine.objects.forEach(obj => {
+                    if(obj.name == obj_name) {
+                        obj.modelMatrix = values
+                    }
+                })
+            }
+        }
+        function generateObjectsTab(objs){
+            let names_content = []
+            objs.forEach( (obj, i) => {
+                let content = `Number of triangles : ${obj.count}<div id="objects_details_${i}_matrix"></div>`
+                content += generateTransformSliders(obj.name, `updateObject('${obj.name}', true)`)
+                content += generateMatrix(obj.name, `updateObject('${obj.name}', false)`, obj.modelMatrix)
+                names_content.push([obj.name, content])
+            })
+            getById("mainTab_Objects").innerHTML = generateTabs("objectsTab", names_content)
         }
     </script>  
 </html>
