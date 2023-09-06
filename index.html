@@ -165,7 +165,7 @@
         function updateObject(obj_name, fromSliders){
             if(fromSliders){
                 let obj_found = null 
-                engine.objects.forEach(obj => {
+                Object.values(engine.objects).forEach(obj => {
                     if(obj.name == obj_name) {
                         obj_found = obj
                         engine.setObjectTransform(obj, ...getTransformSlidersValues(obj_name))
@@ -174,7 +174,7 @@
                 setMatrixValues(obj_name, obj_found.modelMatrix)
             }else{
                 let values = getMatrixValues(obj_name)
-                engine.objects.forEach(obj => {
+                Object.values(engine.objects).forEach(obj => {
                     if(obj.name == obj_name) {
                         obj.modelMatrix = values
                     }

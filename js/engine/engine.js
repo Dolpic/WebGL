@@ -29,12 +29,12 @@ export default class RenderingEngine{
         shadowMap: "uMatrixShadowMap"
       }
 
-      this.mainProgram      = new Program(this, shaders)
-      this.objects          = new Objects(this)
-      this.lights           = new Lights(this)
-      this.camera           = new Camera(this)
-      this.textures         = new Textures(this)
-      this.framebuffer      = new Framebuffer(this, shadowMapShaders)
+      this.mainProgram = new Program(this, shaders)
+      this.objects     = new Objects(this)
+      this.lights      = new Lights(this)
+      this.camera      = new Camera(this)
+      this.textures    = new Textures(this)
+      this.framebuffer = new Framebuffer(this, shadowMapShaders)
 
       this.createShadowmapFramebuffer()
   }

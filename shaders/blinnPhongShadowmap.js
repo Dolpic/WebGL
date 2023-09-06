@@ -63,6 +63,8 @@ export default {
 
     in lowp vec4 vShadowMapCoord;
 
+    uniform mat4 uMatrixView;
+
     uniform sampler2D uTexture;
     uniform sampler2D uShadowMap;
     uniform samplerCube uCubemap;
@@ -108,7 +110,10 @@ export default {
         bool isInShadow = texture(uShadowMap, shadowMapCoord.xy).r < shadowMapCoord.z + shadow_bias ;
         color = vec4(isInShadow ? color.rgb*shadowReduce : color.rgb, color.a);
 
-        color = 0.7*color + 0.3*texture(uCubemap, reflect(-vnSurfaceToCam, normalize(vNormal)));
+        //color = 0.01*color + vec4( texture(uShadowMap, shadowMapCoord.xy).rg, 1.0, 1.0);
+
+        vec3 dir = (inverse(uMatrixView)*vec4(reflect(-vnSurfaceToCam, normalize(vNormal)), 1.0)).xzy;
+        color = 0.7*color + 0.3*texture(uCubemap, dir);
 
         //colors = vec4( texture(uTexture, projectedTexcoord.xy).rrr , 1.0);
         //float grey = projectedTexcoord.z;
