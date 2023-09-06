@@ -8,13 +8,6 @@ export function createTransformMatrix(position, rotation, scale=[1,1,1]){
     return model
 }
 
-export function loadImage(src, callback){
-    let img = new Image()
-    img.src = src
-    img.onload = () => callback(img)
-}
-
-
 export function setDefaultParams(params){
     let result = {}
     let defaults = {
@@ -29,18 +22,4 @@ export function setDefaultParams(params){
         result[prop] = params.hasOwnProperty(prop) ? params[prop] : defaults[prop]
     }
     return result
-}
-
-export function printDebugProgram(gl, program){
-    console.log("Program informations :")
-    console.log("Attributes : ")
-    for(let i=0; i<gl.getProgramParameter(program, gl.ACTIVE_ATTRIBUTES); i++){
-      console.log(gl.getActiveAttrib(program, i))
-    }
-    console.log("Uniforms : ")
-    for(let i=0; i<gl.getProgramParameter(program, gl.ACTIVE_UNIFORMS); i++){
-      console.log(gl.getActiveUniform(program, i))
-    }
-    console.log("Shaders : ")
-    console.log(gl.getAttachedShaders(program))
 }

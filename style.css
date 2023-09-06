@@ -33,6 +33,10 @@ canvas{
     height: 800px;
     border: 1px solid var(--dark);
 }
+
+#parameters{
+    width: 450px;
+}
 #parameters input{
     display:block;
 }

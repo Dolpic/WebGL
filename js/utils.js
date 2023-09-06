@@ -1,8 +1,6 @@
 function getById(id) { return document.getElementById(id) }
 function getValue(id){ return getById(id).value }
-function setValue(id, value){ getById(id).value = value}
 function getChildren(id){ return Array.from(getById(id).children) }
-
 
 function getTransformSlidersValues(id){
     return [
@@ -11,11 +9,6 @@ function getTransformSlidersValues(id){
         [getValue(id+"_SX"), getValue(id+"_SY"), getValue(id+"_SZ")]
     ]
 }
-/*function setTransformSlidersValues(id, vals){
-    setValue(id+"_TX",vals[0]);setValue(id+"_TY",vals[1]);setValue(id+"_TZ",vals[2])
-    setValue(id+"_RX",vals[3]);setValue(id+"_RY",vals[4]);setValue(id+"_RZ",vals[5]) 
-    setValue(id+"_SX",vals[6]);setValue(id+"_SY",vals[7]);setValue(id+"_SZ",vals[8])
-}*/
 function generateTransformSliders(id, changeCallback, values=[[0,0,0],[0,0,0],[1,1,1]]){
     return (
         generateSliders(id+"_T",  ["X","Y","Z"], -100,  100, "Translation", values[0], changeCallback) +

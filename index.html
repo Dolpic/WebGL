@@ -14,30 +14,33 @@
         </script>
     </head>
     <body onload="init();start()">
-        <div id="parameters" class="panel">
-            <details>
-                <summary><h2>Debug</h2></summary>
-                <table>
-                    <tr><td>FPS : </td><td id="fps"></td></tr>
-                    <tr><td>Refresh rate : </td><td id="refresh_rate"></td></tr>
-                </table>
-                <input onchange="params.depth_test=this.checked;restart()" id="depth_test" type="checkbox" checked/><label>Enable depth testing</label>
-                <input onchange="params.show_shadow_map=this.checked;restart()" id="show_shadow_map" type="checkbox" unchecked/><label>Show shadow map</label>
-                <br>
-                <label>Depth test function</label>
-                <select onchange="restart()" id="depth_func">
-                    <option value="NEVER">Never</option>
-                    <option value="ALWAYS">Always</option>
-                    <option value="LESS">Less</option>
-                    <option value="EQUAL">Equal</option>
-                    <option value="LEQUAL" selected="selected">Less or equal</option>
-                    <option value="GREATER">Greater</option>
-                    <option value="GEQUAL">Greater or equal</option>
-                    <option value="NOTEQUAL">Not equal</option>
-                </select>
-                <div id="projection_matrix"></div>
-                <div id="view_matrix"></div>
-            </details>
+        <div>
+            <div id="parameters" class="panel"></div>
+            <div id="debug_panel" class="panel">
+                <details>
+                    <summary><h2>Debug</h2></summary>
+                    <table>
+                        <tr><td>FPS : </td><td id="fps"></td></tr>
+                        <tr><td>Refresh rate : </td><td id="refresh_rate"></td></tr>
+                    </table>
+                    <input onchange="params.depth_test=this.checked;restart()" id="depth_test" type="checkbox" checked/><label>Enable depth testing</label>
+                    <input onchange="params.show_shadow_map=this.checked;restart()" id="show_shadow_map" type="checkbox" unchecked/><label>Show shadow map</label>
+                    <br>
+                    <label>Depth test function</label>
+                    <select onchange="restart()" id="depth_func">
+                        <option value="NEVER">Never</option>
+                        <option value="ALWAYS">Always</option>
+                        <option value="LESS">Less</option>
+                        <option value="EQUAL">Equal</option>
+                        <option value="LEQUAL" selected="selected">Less or equal</option>
+                        <option value="GREATER">Greater</option>
+                        <option value="GEQUAL">Greater or equal</option>
+                        <option value="NOTEQUAL">Not equal</option>
+                    </select>
+                    <div id="projection_matrix"></div>
+                    <div id="view_matrix"></div>
+                </details>
+            </div>
         </div>
         <canvas id="canvas" width="800" height="800"></canvas>
     </body>    
@@ -54,14 +57,9 @@
                 generateSliders("CLD", ["X","Y","Z"], 0,   360, "Cone light direction")
             )
 
-            let shadersContent = ""
-            let parameters = getById("parameters")
-            parameters.innerHTML = generateTabs("mainTab", [
-                ["View",    ""], 
-                ["Lights",  lightsContent], 
-                ["Objects", ""], 
-                ["Shaders", shadersContent]
-            ]) + parameters.innerHTML
+            getById("parameters").innerHTML = generateTabs("mainTab", [
+                ["View", ""], ["Lights", lightsContent], ["Objects", ""], ["Shaders", ""]
+            ])
 
             Shaders        = document.Shaders
             Shapes         = document.Shapes
@@ -111,15 +109,14 @@
             engine.addObject(Shapes.Cube, "Cube_2", [2,0,1])
             engine.addObject(Shapes.Cube, "Cube_3", [0,-2,2])
             engine.addObject(Shapes.Cube, "Cube_4", [-2,0,1])
-            ModelHelper.loadWavefront("dragon/dragon.obj", "").then((obj) => engine.addObject(obj, "Dragon"))
-            ModelHelper.loadWavefront("gizmo/gizmo.obj", "").then((obj) => engine.addObject(obj, "Gizmo"))
-            light_marker = engine.addObject(Shapes.LightMarker, "Light marker", [0,0,0])
+            ModelHelper.loadWavefront("dragon/dragon.obj", "").then(obj => engine.addObject(obj, "Dragon"))
+            ModelHelper.loadWavefront("gizmo/gizmo.obj", "").then(obj => engine.addObject(obj, "Gizmo"))
+            engine.addObject(Shapes.LightMarker, "Light_marker", [0,0,0])
 
             engine.setCubemap("ressources/cubemaps/field_sunset")
-            updateView()
             engine.setSkybox(Shaders.skybox, "ressources/cubemaps/field_sunset")
 
-            generateObjectsTab(engine.objects)
+            generateObjectsTab(engine.getObjects())
             generateViewTab()
             updateView(true)
 
@@ -136,22 +133,24 @@
                 getById("refresh_rate").innerHTML = Math.round(deltaTime)+" ms"
             }
 
-            engine.setAmbientLight(getAmbiantLightColor())
-            engine.setDirectionalLight(getDirLightColor(), getDirLightPos())
-            engine.setPointLight(getPointLightColor(), getPointLightPos())
-            engine.setConeLight(getConeLightColor(), getConeLightPos(), getConeLightDir())
-            engine.setObjectTransform(light_marker, getConeLightPos())
+            engine.lights.setAmbient(getAmbiantLightColor())
+            engine.lights.setDirectional(getDirLightColor(), getDirLightPos())
+            engine.lights.setPoint(getPointLightColor(), getPointLightPos())
+            engine.lights.setCone(getConeLightColor(), getConeLightPos(), getConeLightDir())
+            engine.setObjectTransform("Light_marker", getConeLightPos())
 
-            lightview = engine.render()
+            engine.render()
             needRestart ? start() : requestAnimationFrame(render)
         }
 
         function updateView(fromSliders){
             if(fromSliders){
-                engine.setViewMatrix(...getTransformSlidersValues("view"))
+                engine.camera.setView(...getTransformSlidersValues("view"))
                 setMatrixValues("view", engine.camera.view)
             }else{
                 const values = getMatrixValues("view")
+                console.log(values)
+                engine.gl.useProgram(engine.program)
                 engine.camera.view = values
                 engine.setMatrix(engine.matrices_names.view, values)
             }
@@ -184,7 +183,7 @@
         }
         function generateObjectsTab(objs){
             let names_content = []
-            objs.forEach( (obj, i) => {
+            Object.values(objs).forEach( (obj, i) => {
                 let content = `Number of triangles : ${obj.count}<div id="objects_details_${i}_matrix"></div>`
                 content += generateTransformSliders(obj.name, `updateObject('${obj.name}', true)`)
                 content += generateMatrix(obj.name, `updateObject('${obj.name}', false)`, obj.modelMatrix)

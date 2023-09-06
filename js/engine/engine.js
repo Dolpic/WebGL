@@ -1,12 +1,18 @@
 import * as Utils from "./utils.js"
 import "./gl-matrix.js"
+import Lights  from "./Lights.js"
+import Camera  from "./Camera.js"
+import Program from "./Program.js"
+import Objects from "./Objects.js"
+import Textures from "./Textures.js"
+import Framebuffer from "./Framebuffer.js"
 
-class RenderingEngine{
-  constructor(canvas, shader, shadowMapShader, params={}){
+export default class RenderingEngine{
+  constructor(canvas, shaders, shadowMapShaders, params={}){
       if (! (this.gl = canvas.getContext("webgl2")) ){
         alert("WebGL2 is not supported on this browser")
       }
-      this.aspectRatio = this.gl.canvas.clientWidth / this.gl.canvas.clientHeight
+      this.canvasSize = {width:this.gl.canvas.clientWidth, height:this.gl.canvas.clientHeight}
       this.params = Utils.setDefaultParams(params)
       this.gl.clearColor(...this.params.clear_color) 
       this.gl.clearDepth(this.params.clear_depth)
@@ -14,12 +20,7 @@ class RenderingEngine{
       this.params.depth_test ? this.gl.enable(this.gl.DEPTH_TEST) : this.gl.disable(this.gl.DEPTH_TEST)
       this.gl.depthFunc(this.params.depth_test_function)
 
-      this.objects = []
-      this.lights  = []
-      this.texture_counter = 0
-
       this.skybox = null
-      this.camera = {}
 
       this.matrices_names = {
         model:     "uMatrixModel",
@@ -28,264 +29,88 @@ class RenderingEngine{
         shadowMap: "uMatrixShadowMap"
       }
 
-      this.program = this.createProgram(shader)
-      this.shadowMapProgram = this.createProgram(shadowMapShader)
-      this.lightFramebuffer = this.createShadowmapFramebuffer()
-      this.initScene()
+      this.mainProgram      = new Program(this, shaders)
+      this.objects          = new Objects(this)
+      this.lights           = new Lights(this)
+      this.camera           = new Camera(this)
+      this.textures         = new Textures(this)
+      this.framebuffer      = new Framebuffer(this, shadowMapShaders)
+
+      this.createShadowmapFramebuffer()
   }
 
-  initScene(){
-    this.setCamera()
-    this.setAmbientLight()
-    this.setDirectionalLight()
-    this.setPointLight()
-    this.setConeLight([0,0,0],[0,0,10])
+  setObjectTransform(name, position=[0,0,0], rotation=[0,0,0], scale=[1,1,1]){
+    this.objects.setTransform(name, position, rotation, scale)
   }
 
-  createCompileShader(type, source) {
-    const shader = this.gl.createShader(type)
-    this.gl.shaderSource(shader, source)
-    this.gl.compileShader(shader)
-    if (!this.gl.getShaderParameter(shader, this.gl.COMPILE_STATUS)) {
-      alert('Error compiling the shaders: ' + this.gl.getShaderInfoLog(shader))
-    }
-    return shader
+  addObject(obj, name, position=[0,0,0], rotation=[0,0,0], scale=[1,1,1]){
+    this.objects.add(obj, name, position, rotation, scale)
   }
 
-  createProgram(shader) {
-    let program = this.gl.createProgram()
-    this.gl.attachShader(program, this.createCompileShader(this.gl.VERTEX_SHADER,   shader.vertex))
-    this.gl.attachShader(program, this.createCompileShader(this.gl.FRAGMENT_SHADER, shader.fragment))
-    this.gl.linkProgram(program)
-    this.gl.useProgram(program)
-    if (!this.gl.getProgramParameter(program, this.gl.LINK_STATUS)) {
-        alert('Error initializing the program : ' + this.gl.getProgramInfoLog(program))
-    }
-    return program
+  getObjects(){
+    return this.objects.list
   }
 
-  createTexture(image, location_name, with_mipmap=true, depth_texture=false){
-    let inital_program = this.gl.getParameter(this.gl.CURRENT_PROGRAM)
-    const texture = this.gl.createTexture()
-    this.gl.activeTexture(this.gl["TEXTURE"+this.texture_counter])
-    this.gl.bindTexture(this.gl.TEXTURE_2D, texture)
-    if(depth_texture){
-      const size = this.params.shadow_map_size
-      this.gl.texImage2D(this.gl.TEXTURE_2D, 0, this.gl.DEPTH_COMPONENT32F, size, size, 0, this.gl.DEPTH_COMPONENT, this.gl.FLOAT, null)
-      this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MAG_FILTER, this.gl.NEAREST)
-      this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MIN_FILTER, this.gl.NEAREST)
-    }else{
-      this.gl.texImage2D(this.gl.TEXTURE_2D, 0, this.gl.RGBA, this.gl.RGBA, this.gl.UNSIGNED_BYTE, image)
-    }
-    
-    if(with_mipmap) this.gl.generateMipmap(this.gl.TEXTURE_2D)
-    this.gl.useProgram(this.program)
-    this.gl.uniform1i(this.gl.getUniformLocation(this.program, location_name), this.texture_counter)
-    this.texture_counter++ // TODO : Should add a warning if no more texture can be created
-    this.gl.useProgram(inital_program)
-    return texture
+  setCubemap(folder){
+   //this.textures.createCubemap(folder, this.mainProgram)
   }
 
+  clear(){
+    this.gl.clear(this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT)
+  }
+
+  renderShadowMap(framebuffer){    
+    this.framebuffer.use(framebuffer)
+    this.framebuffer.setCamera(this.lights.conePosition, this.lights.coneDirection)
+    this.framebuffer.setOrthoProjection(-10, 10, -10, 10, 0.1, 200)
+
+    this.clear()
+    this.objects.draw(this.framebuffer.program)
+    const lightMatrix = Utils.createTransformMatrix([0.5,0.5,0.5], [0,0,0], [0.5,0.5,0.5])
+    const camMatrices = this.framebuffer.getCameraMatrices()
+    glMatrix.mat4.multiply(lightMatrix, lightMatrix, camMatrices.projection)
+    glMatrix.mat4.multiply(lightMatrix, lightMatrix, camMatrices.view)
+    return lightMatrix
+  }
   createShadowmapFramebuffer(){
-    const depthTexture = this.createTexture(null, "uShadowMap", false, true)
-    const lightFramebuffer = this.gl.createFramebuffer()
-    this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, lightFramebuffer)
-    this.gl.framebufferTexture2D(this.gl.FRAMEBUFFER, this.gl.DEPTH_ATTACHMENT, this.gl.TEXTURE_2D, depthTexture, 0)
-    return lightFramebuffer
+    this.depthTexture = this.textures.createDepthTexture("uShadowMap", this.params.shadow_map_size)
+    this.framebuffer.create("shadowMap", this.params.shadow_map_size, this.params.shadow_map_size, this.depthTexture)
   }
 
-  createBuffer(data, location_name, nbComponents, normalize=false, program=this.program){
-    //this.debugProgram(this.program)
-    this.gl.useProgram(program)
+  createBuffer(data, location_name, nbComponents, normalize=false, program=this.mainProgram){
     this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.gl.createBuffer())
     this.gl.bufferData(this.gl.ARRAY_BUFFER, new Float32Array(data), this.gl.STATIC_DRAW) // Note : change this if the shape changes dynamically
-    const location = this.gl.getAttribLocation(program, location_name)
+    const location = this.gl.getAttribLocation(program.program, location_name)
     this.gl.enableVertexAttribArray(location)
     this.gl.vertexAttribPointer(location, nbComponents, this.gl.FLOAT, normalize, 0, 0)
   }
 
-  addObject(obj, name, position=[0,0,0], rotation=[0,0,0], scale=[1,1,1]){
-    // Note : is it possible to not repeat the points that are at the same place (ex : only 8 vertex for a cube) ?
-    const converted = ModelHelper.modelToBuffers(obj)
-    const vao = this.gl.createVertexArray()
-    this.gl.bindVertexArray(vao)
-    this.createBuffer(converted.positions, "aVertexPosition", 3)
-    this.createBuffer(converted.colors,    "aVertexColor",    4)
-    this.createBuffer(converted.normals,   "aVertexNormal",   3)
-    if(obj.texture != null){
-      this.createBuffer(converted.texture_coord, "aTextureCoord", 2, true)
-      Utils.loadImage(obj.texture, image => this.createTexture(image, "uTexture"))
-    }
-    let new_obj = {name:name.replace(" ","_"), vao:vao, count:converted.count}
-    this.setObjectTransform(new_obj, position, rotation, scale)
-    this.objects.push(new_obj)
-    return new_obj
-  }
-
-  setObjectTransform(obj, position=[0,0,0], rotation=[0,0,0], scale=[1,1,1]){
-    obj.modelMatrix = Utils.createTransformMatrix(position, rotation, scale)
-  }
-
-  setMatrix(name, value){
-    this.gl.uniformMatrix4fv(this.gl.getUniformLocation(this.gl.getParameter(this.gl.CURRENT_PROGRAM), name), false, value)
-  }
-
-  setCamera(position=[0,0,0], rotation=[0,0,0], scale=[1,1,1], fov=45, zNear=0.1, zFar=200.0){
-    this.setProjectionMatrix(fov, zNear, zFar)
-    this.setViewMatrix(position, rotation, scale)
-  }
-
-  setProjectionMatrix(fov=45, zNear=0.1, zFar=200.0){
-    this.gl.useProgram(this.program)
-    const project = glMatrix.mat4.create()
-    glMatrix.mat4.perspective(project, fov*Math.PI/180, this.aspectRatio, zNear, zFar)
-    this.camera.projection = project
-    this.setMatrix(this.matrices_names.projection, project)
-  }
-
-  setViewMatrix(position=[0,0,0], rotation=[0,0,0], scale=[1,1,1]){
-    this.gl.useProgram(this.program)
-    const view = Utils.createTransformMatrix(position, rotation, scale)
-    this.camera.view = view
-    this.setMatrix(this.matrices_names.view, view)
-  }
-
-  setAmbientLight(color=[1,1,1]){
-    this.gl.useProgram(this.program)
-    this.gl.uniform3fv(this.gl.getUniformLocation(this.program, 'uLightAmbientColor'), color)
-  }
-
-  setDirectionalLight(color=[0,0,0], direction=[0,0,-1]){
-    this.gl.useProgram(this.program)
-    this.gl.uniform3fv(this.gl.getUniformLocation(this.program, 'uLightDirectionalColor'),     color)
-    this.gl.uniform3fv(this.gl.getUniformLocation(this.program, 'uLightDirectionalDirection'), direction)
-  }
-
-  setPointLight(color=[0,0,0], position=[0,0,-1]){
-    this.gl.useProgram(this.program)
-    this.gl.uniform3fv(this.gl.getUniformLocation(this.program, 'uLightPointColor'),    color)
-    this.gl.uniform3fv(this.gl.getUniformLocation(this.program, 'uLightPointPosition'), position)
-  }
-
-  setConeLight(color=[0,0,0], position=[0,0,-1], direction=[0,0,-1]){
-    let view = Utils.createTransformMatrix([0,0,0], direction)
-    glMatrix.mat4.invert(view, view)
-    let real_dir = [view[2],view[6],view[10]]
-    this.gl.useProgram(this.program)
-    this.gl.uniform3fv(this.gl.getUniformLocation(this.program, 'uLightConeColor'),     color)
-    this.gl.uniform3fv(this.gl.getUniformLocation(this.program, 'uLightConePosition'),  position)
-    this.gl.uniform3fv(this.gl.getUniformLocation(this.program, 'uLightConeDirection'), real_dir)
-    this.lightPosition = position
-    this.lightDirection = direction
-  }
-
-  setCubemap(folder){
-    let texture = this.gl.createTexture()
-    this.gl.bindTexture(this.gl.TEXTURE_CUBE_MAP, texture)
-    this.gl.activeTexture(this.gl["TEXTURE"+this.texture_counter])
-    let faces = [
-      [this.gl.TEXTURE_CUBE_MAP_POSITIVE_X, "px.png"],
-      [this.gl.TEXTURE_CUBE_MAP_NEGATIVE_X, "nx.png"],
-      [this.gl.TEXTURE_CUBE_MAP_POSITIVE_Y, "py.png"],
-      [this.gl.TEXTURE_CUBE_MAP_NEGATIVE_Y, "ny.png"],
-      [this.gl.TEXTURE_CUBE_MAP_POSITIVE_Z, "pz.png"],
-      [this.gl.TEXTURE_CUBE_MAP_NEGATIVE_Z, "nz.png"]
-    ]
-    let completed = 0
-    faces.forEach(face => {
-      Utils.loadImage(folder+"/"+face[1], img => {
-        this.gl.bindTexture(this.gl.TEXTURE_CUBE_MAP, texture)
-        this.gl.texImage2D(face[0], 0, this.gl.RGBA, 512, 512, 0, this.gl.RGBA, this.gl.UNSIGNED_BYTE, img)
-        if(++completed==6){
-          this.gl.generateMipmap(this.gl.TEXTURE_CUBE_MAP)
-          this.gl.texParameteri(this.gl.TEXTURE_CUBE_MAP, this.gl.TEXTURE_MIN_FILTER, this.gl.LINEAR_MIPMAP_LINEAR)
-        }
-      })
-    })
-    this.gl.uniform1i(this.gl.getUniformLocation(this.program, "uCubemap"), this.texture_counter)
-    this.texture_counter++ // TODO : Should add a warning if no more texture can be created
-  }
-
   setSkybox(shaders, folder){
-    this.skyboxProgram = this.createProgram(shaders)
+    /*this.skyboxProgram = new Program(this, shaders)
     const vao = this.gl.createVertexArray()
     this.gl.bindVertexArray(vao)
     this.createBuffer([-1,1,1, 1,1,1, -1,-1,1, 1,1,1, 1,-1,1, -1,-1,1], "aVertexPosition", 3, false, this.skyboxProgram)
     this.skybox = vao
-
-    let texture = this.gl.createTexture()
-    this.gl.bindTexture(this.gl.TEXTURE_CUBE_MAP, texture)
-    this.gl.activeTexture(this.gl["TEXTURE"+this.texture_counter])
-    let faces = [
-      [this.gl.TEXTURE_CUBE_MAP_POSITIVE_X, "px.png"],
-      [this.gl.TEXTURE_CUBE_MAP_NEGATIVE_X, "nx.png"],
-      [this.gl.TEXTURE_CUBE_MAP_POSITIVE_Y, "py.png"],
-      [this.gl.TEXTURE_CUBE_MAP_NEGATIVE_Y, "ny.png"],
-      [this.gl.TEXTURE_CUBE_MAP_POSITIVE_Z, "pz.png"],
-      [this.gl.TEXTURE_CUBE_MAP_NEGATIVE_Z, "nz.png"]
-    ]
-    let completed = 0
-    faces.forEach(face => {
-      Utils.loadImage(folder+"/"+face[1], img => {
-        this.gl.bindTexture(this.gl.TEXTURE_CUBE_MAP, texture)
-        this.gl.texImage2D(face[0], 0, this.gl.RGBA, 512, 512, 0, this.gl.RGBA, this.gl.UNSIGNED_BYTE, img)
-        if(++completed==6){
-          this.gl.generateMipmap(this.gl.TEXTURE_CUBE_MAP)
-          this.gl.texParameteri(this.gl.TEXTURE_CUBE_MAP, this.gl.TEXTURE_MIN_FILTER, this.gl.LINEAR_MIPMAP_LINEAR)
-        }
-      })
-    })
-    this.gl.uniform1i(this.gl.getUniformLocation(this.program, "uCubemap"), this.texture_counter)
-    this.texture_counter++ // TODO : Should add a warning if no more texture can be created
-
-
-    this.gl.useProgram(this.program)
-  }
-
-  drawObjects(){
-    this.gl.clear(this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT)
-    this.objects.forEach(obj => {
-      this.gl.bindVertexArray(obj.vao)
-      this.setMatrix(this.matrices_names.model, obj.modelMatrix)
-      this.gl.drawArrays(this.gl.TRIANGLES, 0, obj.count)
-    })
+    this.textures.createCubemap(folder, this.skyboxProgram)*/
   }
 
   render() {
-    this.gl.useProgram(this.shadowMapProgram)
-    this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, this.params.show_shadow_map ? null : this.lightFramebuffer)
-    this.gl.viewport(0, 0, this.params.shadow_map_size, this.params.shadow_map_size)
-
-    let view = Utils.createTransformMatrix(this.lightPosition, this.lightDirection)
-    glMatrix.mat4.invert(view, view)
-    this.setMatrix(this.matrices_names.view, view)
-    let project = glMatrix.mat4.create()
-    glMatrix.mat4.ortho(project, -10, 10, -10, 10, 0.1, 200)
-    this.setMatrix(this.matrices_names.projection, project)
-    this.drawObjects()
-
+    const lightMatrix = this.renderShadowMap(this.params.show_shadow_map?"main":"shadowMap")
+   
     if(!this.params.show_shadow_map){
-      this.gl.useProgram(this.program)
-      this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, null)
-      this.gl.viewport(0, 0, this.gl.canvas.width, this.gl.canvas.height)
-
-      const lightMatrix = Utils.createTransformMatrix([0.5,0.5,0.5], [0,0,0], [0.5,0.5,0.5])
-      glMatrix.mat4.multiply(lightMatrix, lightMatrix, project)
-      glMatrix.mat4.multiply(lightMatrix, lightMatrix, view)
-      this.setMatrix(this.matrices_names.shadowMap, lightMatrix)
-      this.drawObjects()
+      this.framebuffer.use("main")
+      this.mainProgram.setMatrix4(this.matrices_names.shadowMap, lightMatrix)
+      this.clear()
+      this.objects.draw(this.mainProgram)
 
       if(this.skybox != null){
-        this.gl.useProgram(this.skyboxProgram)
-        let viewProjection = glMatrix.mat4.create()
+        /*let viewProjection = glMatrix.mat4.create()
         glMatrix.mat4.multiply(viewProjection, this.camera.projection, this.camera.view)
-        this.setMatrix("uViewProjection", viewProjection)
+        this.skyboxProgram.setMatrix4("uViewProjection", viewProjection)
         this.gl.bindVertexArray(this.skybox)
-        this.gl.drawArrays(this.gl.TRIANGLES, 0, 6)
+        this.gl.drawArrays(this.gl.TRIANGLES, 0, 6)*/
       }
 
     }
   }
 }
-
-export default RenderingEngine
