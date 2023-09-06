@@ -108,9 +108,7 @@ export default {
         bool isInShadow = texture(uShadowMap, shadowMapCoord.xy).r < shadowMapCoord.z + shadow_bias ;
         color = vec4(isInShadow ? color.rgb*shadowReduce : color.rgb, color.a);
 
-        //color = 0.01*color + vec4( texture(uShadowMap, shadowMapCoord.xy).rg, 1.0, 1.0);
-
-        //color = 0.7*color + 0.3*texture(uCubemap, reflect(-vnSurfaceToCam, normalize(vNormal)));
+        color = 0.7*color + 0.3*texture(uCubemap, reflect(-vnSurfaceToCam, normalize(vNormal)));
 
         //colors = vec4( texture(uTexture, projectedTexcoord.xy).rrr , 1.0);
         //float grey = projectedTexcoord.z;

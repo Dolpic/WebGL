@@ -52,7 +52,7 @@ export default class RenderingEngine{
   }
 
   setCubemap(folder){
-   //this.textures.createCubemap(folder, this.mainProgram)
+   this.textures.createCubemap(folder, this.mainProgram)
   }
 
   clear(){
@@ -86,12 +86,12 @@ export default class RenderingEngine{
   }
 
   setSkybox(shaders, folder){
-    /*this.skyboxProgram = new Program(this, shaders)
+    this.skyboxProgram = new Program(this, shaders)
     const vao = this.gl.createVertexArray()
     this.gl.bindVertexArray(vao)
     this.createBuffer([-1,1,1, 1,1,1, -1,-1,1, 1,1,1, 1,-1,1, -1,-1,1], "aVertexPosition", 3, false, this.skyboxProgram)
     this.skybox = vao
-    this.textures.createCubemap(folder, this.skyboxProgram)*/
+    this.textures.createCubemap(folder, this.skyboxProgram)
   }
 
   render() {
@@ -104,11 +104,11 @@ export default class RenderingEngine{
       this.objects.draw(this.mainProgram)
 
       if(this.skybox != null){
-        /*let viewProjection = glMatrix.mat4.create()
+        let viewProjection = glMatrix.mat4.create()
         glMatrix.mat4.multiply(viewProjection, this.camera.projection, this.camera.view)
         this.skyboxProgram.setMatrix4("uViewProjection", viewProjection)
         this.gl.bindVertexArray(this.skybox)
-        this.gl.drawArrays(this.gl.TRIANGLES, 0, 6)*/
+        this.gl.drawArrays(this.gl.TRIANGLES, 0, 6)
       }
 
     }

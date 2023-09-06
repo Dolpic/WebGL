@@ -58,7 +58,7 @@ export default class Textures{
             }
           })
         })
-        program.setInt("uCubemap", this.texture_counter)
+        program.setTextureUnit("uCubemap", this.texture_counter)
         this.texture_counter++ // TODO : Should add a warning if no more texture can be created
     }
 
