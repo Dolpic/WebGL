@@ -2,8 +2,8 @@ import * as Utils from "./utils.js"
 import "./gl-matrix.js"
 
 export default class Lights{
-    constructor(engine){
-        this.program = engine.mainProgram
+    constructor(engine, program){
+        this.program = program
         this.setAmbient()
         this.setDirectional()
         this.setPoint()

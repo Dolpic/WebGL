@@ -1,10 +1,10 @@
 export default {
     vertex : `#version 300 es
-    in vec4 aVertexPosition;
+    in vec4 aPosition;
     out vec4 position;
     void main() {
-        gl_Position = aVertexPosition;
-        position = gl_Position;
+        gl_Position = aPosition;
+        position = aPosition;
     }`,
 
     fragment : `#version 300 es

@@ -1,20 +1,21 @@
 export default {
     vertex : `#version 300 es
 
-    in vec4 aVertexPosition;
-    in vec4 aVertexColor;
-    in vec3 aVertexNormal;
-    in vec2 aTextureCoord;
+    in vec4 aPosition;
+    in vec4 aColor;
+    in vec3 aNormal;
+    in vec2 aTexCoord;
 
-    uniform mat4 uMatrixModel;
-    uniform mat4 uMatrixView;
-    uniform mat4 uMatrixProjection;
 
     uniform mat4 uMatrixShadowMap;
     uniform vec3 uLightPointPosition;
     uniform vec3 uLightDirectionalDirection;
     uniform vec3 uLightConePosition;
     uniform vec3 uLightConeDirection;
+
+    uniform mat4 uMatrixModel;
+    uniform mat4 uMatrixView;
+    uniform mat4 uMatrixProjection;
 
     out lowp vec4 vColor;
     out lowp vec2 vTextureCoord;
@@ -30,17 +31,17 @@ export default {
     out lowp vec3 vLightConeDirection;
 
     void main() {
-        vec4 modelPosition = uMatrixModel * aVertexPosition;
+        vec4 modelPosition = uMatrixModel * aPosition;
         gl_Position = uMatrixProjection * uMatrixView * modelPosition;
 
-        vColor        = aVertexColor;
-        vTextureCoord = aTextureCoord;
+        vColor        = aColor;
+        vTextureCoord = aTexCoord;
 
         vShadowMapCoord =  uMatrixShadowMap * modelPosition;
-        vNormal = mat3(transpose(inverse(uMatrixView))) * aVertexNormal;
-        vSurfaceToCam       = (uMatrixView * -aVertexPosition).xyz;
-        vSurfaceToLight     = mat3(uMatrixView) * (uLightPointPosition - aVertexPosition.xyz);
-        vSurfaceToConeLight = mat3(uMatrixView) * (uLightConePosition  - aVertexPosition.xyz);
+        vNormal = mat3(transpose(inverse(uMatrixView))) * aNormal;
+        vSurfaceToCam       = (uMatrixView * -aPosition).xyz;
+        vSurfaceToLight     = mat3(uMatrixView) * (uLightPointPosition - aPosition.xyz);
+        vSurfaceToConeLight = mat3(uMatrixView) * (uLightConePosition  - aPosition.xyz);
         vSurfaceToDirLight  = mat3(uMatrixView) * (-uLightDirectionalDirection);
         vLightConeDirection = mat3(uMatrixView) * uLightConeDirection;
     }`,
