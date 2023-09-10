@@ -133,10 +133,10 @@
                 getById("refresh_rate").innerHTML = Math.round(deltaTime)+" ms"
             }
 
-            engine.lights.setAmbient(getAmbiantLightColor())
-            engine.lights.setDirectional(getDirLightColor(), getDirLightPos())
-            engine.lights.setPoint(getPointLightColor(), getPointLightPos())
-            engine.lights.setCone(getConeLightColor(), getConeLightPos(), getConeLightDir())
+            engine.mainScene.lights.setAmbient(getAmbiantLightColor())
+            engine.mainScene.lights.setDirectional(getDirLightColor(), getDirLightPos())
+            engine.mainScene.lights.setPoint(getPointLightColor(), getPointLightPos())
+            engine.mainScene.lights.setCone(getConeLightColor(), getConeLightPos(), getConeLightDir())
             engine.setObjectTransform("Light_marker", getConeLightPos())
 
             engine.render()
@@ -145,20 +145,20 @@
 
         function updateView(fromSliders){
             if(fromSliders){
-                engine.camera.setView(...getTransformSlidersValues("view"))
-                setMatrixValues("view", engine.camera.view)
+                engine.mainScene.camera.setView(...getTransformSlidersValues("view"))
+                setMatrixValues("view", engine.getViewProjection().view)
             }else{
                 const values = getMatrixValues("view")
                 console.log(values)
                 engine.gl.useProgram(engine.program)
                 engine.camera.view = values
-                engine.setMatrix(engine.matrices_names.view, values)
+                engine.setViewProjection(values)
             }
         }
         function generateViewTab(){
             getById("mainTab_View").innerHTML = (
                 generateTransformSliders("view", "updateView(true)", [[0,0,-26],[-71,0,-120],[1,1,1]]) +
-                generateMatrix("view", `updateView(false)`, engine.camera.view) 
+                generateMatrix("view", `updateView(false)`, engine.getViewProjection().view) 
             )
         }
 
