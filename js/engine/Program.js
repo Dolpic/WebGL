@@ -30,17 +30,17 @@ export default class Program{
 
     setMatrix4(name, value, transpose=false){
         this.gl.useProgram(this.program)
-        this.gl.uniformMatrix4fv(this.gl.getUniformLocation(this.program, name), transpose, value)
+        if(value != null) this.gl.uniformMatrix4fv(this.gl.getUniformLocation(this.program, name), transpose, value)
     }
 
     setVec3(name, value){
         this.gl.useProgram(this.program)
-        this.gl.uniform3fv(this.gl.getUniformLocation(this.program, name), value)
+        if(value != null) this.gl.uniform3fv(this.gl.getUniformLocation(this.program, name), value)
     }
 
-    setTextureUnit(name, number){
+    setTextureUnit(name, value){
         this.gl.useProgram(this.program)
-        this.gl.uniform1i(this.gl.getUniformLocation(this.program, name), number)
+        if(value != null) this.gl.uniform1i(this.gl.getUniformLocation(this.program, name), value)
     }
     
     clearAndDraw(objects, mode=this.gl.TRIANGLES){

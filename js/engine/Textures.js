@@ -38,7 +38,7 @@ export default class Textures{
         return tex.texture
     }
 
-    createCubemap(folder, program){
+    createCubemap(folder, program, size=512){
         const tex = this._new("uCubemap", program, this.gl.TEXTURE_CUBE_MAP)
         let faces = [
           [this.gl.TEXTURE_CUBE_MAP_POSITIVE_X, "px.png"],
@@ -52,7 +52,7 @@ export default class Textures{
         faces.forEach(face => {
           this.loadImage(folder+"/"+face[1], img => {
             this.gl.bindTexture(this.gl.TEXTURE_CUBE_MAP, tex.texture)
-            this.gl.texImage2D(face[0], 0, this.gl.RGBA, 512, 512, 0, this.gl.RGBA, this.gl.UNSIGNED_BYTE, img)
+            this.gl.texImage2D(face[0], 0, this.gl.RGBA, size, size, 0, this.gl.RGBA, this.gl.UNSIGNED_BYTE, img)
             if(++completed==6){
               this.gl.generateMipmap(this.gl.TEXTURE_CUBE_MAP)
               this.gl.texParameteri(this.gl.TEXTURE_CUBE_MAP, this.gl.TEXTURE_MIN_FILTER, this.gl.LINEAR_MIPMAP_LINEAR)

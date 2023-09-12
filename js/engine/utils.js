@@ -1,20 +1,20 @@
 import "./gl-matrix.js"
 
-// TODO : avoid allocating in these two functions
-export function createTransformMatrix(position, rotation, scale=[1,1,1]){
-    const model = glMatrix.mat4.create()
-    glMatrix.mat4.translate(model, model, position)
-    glMatrix.mat4.rotateX(  model, model, rotation[0]*Math.PI/180)
-    glMatrix.mat4.rotateY(  model, model, rotation[1]*Math.PI/180)
-    glMatrix.mat4.rotateZ(  model, model, rotation[2]*Math.PI/180)
-    glMatrix.mat4.scale(    model, model, scale)
-    return model
+export function transformMatrix(output, position, rotation, scale=[1,1,1]){
+    glMatrix.mat4.identity( output)
+    glMatrix.mat4.translate(output, output, position)
+    glMatrix.mat4.rotateX(  output, output, rotation[0]*Math.PI/180)
+    glMatrix.mat4.rotateY(  output, output, rotation[1]*Math.PI/180)
+    glMatrix.mat4.rotateZ(  output, output, rotation[2]*Math.PI/180)
+    glMatrix.mat4.scale(    output, output, scale)
 }
 
-export function matInverse(matrice){
-    const result = glMatrix.mat4.create()
-    glMatrix.mat4.invert(result, matrice)
-    return result
+export function inverseMatrix(matrix){
+    glMatrix.mat4.invert(matrix, matrix)
+}
+
+export function createMatrix(){
+    return glMatrix.mat4.create()
 }
 
 export const names = {

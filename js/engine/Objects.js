@@ -1,10 +1,10 @@
 import * as Utils from "./utils.js"
 
 export default class Objects{
-    constructor(engine){
-        this.engine = engine
-        this.gl = engine.getGlContext()
+    constructor(glContext){
+        this.gl = glContext
         this.list = {}
+        this.textureToCreate = []
     }
 
     add(obj, name, position=[0,0,0], rotation=[0,0,0], scale=[1,1,1]){
@@ -16,11 +16,15 @@ export default class Objects{
         this.createBuffer(converted.colors   , 1, 4)
         this.createBuffer(converted.normals  , 2, 3)
         if(obj.texture != null){
-            // TODO now only one texture can be registered
             this.createBuffer(converted.texture_coord, 3, 2, true)
-            this.engine.createTexture(obj.texture, "uTexture")
+            this.textureToCreate.push(obj.texture)
         }
-        this.list[name] = {name:name, count:converted.count, vao: vao}
+        this.list[name] = {
+            name:name, 
+            count:converted.count, 
+            vao: vao,
+            modelMatrix: Utils.createMatrix()
+        }
         this.setTransform(name, position, rotation, scale)
     }
 
@@ -31,8 +35,14 @@ export default class Objects{
         this.gl.enableVertexAttribArray(location)
         this.gl.vertexAttribPointer(location, nbComponents, this.gl.FLOAT, normalize, 0, 0)
     }
+
+    getTexturesToCreate(){
+        const tmp =  this.textureToCreate
+        this.textureToCreate = []
+        return tmp
+    }
     
     setTransform(name, position=[0,0,0], rotation=[0,0,0], scale=[1,1,1]){
-        this.list[name].modelMatrix = Utils.createTransformMatrix(position, rotation, scale)
+        Utils.transformMatrix(this.list[name].modelMatrix, position, rotation, scale)
     }
 }

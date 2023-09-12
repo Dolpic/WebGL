@@ -1,4 +1,4 @@
-export class Framebuffer{
+export default class Framebuffer{
     constructor(glContext, size, texture){
         this.gl = glContext
         this.size = size
@@ -9,18 +9,6 @@ export class Framebuffer{
 
     use(){
         this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, this.fb)
-        this.gl.viewport(0, 0, this.size.width, this.size.height)
-    }
-}
-
-export class DefaultFramebuffer{
-    constructor(glContext, size){
-        this.gl = glContext
-        this.size = size
-    }
-
-    use(){
-        this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, null)
         this.gl.viewport(0, 0, this.size.width, this.size.height)
     }
 }

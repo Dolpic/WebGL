@@ -43,9 +43,7 @@ function selectTab(tab, tab_selected, tabs_name){
 }
 function generateTabs(tabName, names_content){
     result = `<div id="${tabName}" class="tabs_list">`
-    names_content.forEach(elem => {
-        result += `<div onclick="selectTab(this, '${tabName}_${elem[0]}', '${tabName}')">${elem[0]}</div>`
-    })
+    names_content.forEach(elem => result += `<div onclick="selectTab(this, '${tabName}_${elem[0]}', '${tabName}')">${elem[0]}</div>`)
     result += `</div><div id="${tabName}_content" class="tabs_content">`
     names_content.forEach(elem => result += `<div id="${tabName}_${elem[0]}">${elem[1]}</div>`)
     return result + `</div>`

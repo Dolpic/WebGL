@@ -54,7 +54,7 @@
                 generateSliders("PL",  ["X","Y","Z"], -10, 10,  "Point light position") +
                 generateSliders("CL",  ["R","G","B"], 0,   1,   "Cone light color") +
                 generateSliders("CL",  ["X","Y","Z"], -10, 10,  "Cone light position") +
-                generateSliders("CLD", ["X","Y","Z"], 0,   360, "Cone light direction")
+                generateSliders("CLD", ["X","Y","Z"], -180,   180, "Cone light direction")
             )
 
             getById("parameters").innerHTML = generateTabs("mainTab", [
@@ -116,8 +116,8 @@
             engine.setCubemap("ressources/cubemaps/field_sunset")
             engine.setSkybox(Shaders.skybox, "ressources/cubemaps/field_sunset")
 
-            generateObjectsTab(engine.getObjects())
-            generateViewTab()
+            generateObjectsTab(engine.objects.list)
+            generateViewTab(engine)
             updateView(true)
 
             render(0)
@@ -133,10 +133,10 @@
                 getById("refresh_rate").innerHTML = Math.round(deltaTime)+" ms"
             }
 
-            engine.mainScene.lights.setAmbient(getAmbiantLightColor())
-            engine.mainScene.lights.setDirectional(getDirLightColor(), getDirLightPos())
-            engine.mainScene.lights.setPoint(getPointLightColor(), getPointLightPos())
-            engine.mainScene.lights.setCone(getConeLightColor(), getConeLightPos(), getConeLightDir())
+            engine.scene.lights.setAmbient(getAmbiantLightColor())
+            engine.scene.lights.setDirectional(getDirLightColor(), getDirLightPos())
+            engine.scene.lights.setPoint(getPointLightColor(), getPointLightPos())
+            engine.scene.lights.setCone(getConeLightColor(), getConeLightPos(), getConeLightDir())
             engine.setObjectTransform("Light_marker", getConeLightPos())
 
             engine.render()
@@ -145,17 +145,17 @@
 
         function updateView(fromSliders){
             if(fromSliders){
-                engine.mainScene.camera.setView(...getTransformSlidersValues("view"))
+                engine.scene.camera.setView(...getTransformSlidersValues("view"))
                 setMatrixValues("view", engine.getViewProjection().view)
             }else{
                 const values = getMatrixValues("view")
                 console.log(values)
                 engine.gl.useProgram(engine.program)
-                engine.camera.view = values
+                engine.scene.camera.view = values
                 engine.setViewProjection(values)
             }
         }
-        function generateViewTab(){
+        function generateViewTab(engine){
             getById("mainTab_View").innerHTML = (
                 generateTransformSliders("view", "updateView(true)", [[0,0,-26],[-71,0,-120],[1,1,1]]) +
                 generateMatrix("view", `updateView(false)`, engine.getViewProjection().view) 
