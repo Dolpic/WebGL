@@ -37,6 +37,14 @@ class ModelHelper{
         return result
     }
 
+    static async loadWavefronts(list, engine){
+        let promises = []
+        list.forEach(entry => {
+            promises.push(this.loadWavefront(entry[1], "").then(obj => engine.addObject(obj, entry[0])))
+        })
+        return Promise.all(promises)
+    }
+
     static faceInfo(obj_face){
         return {
             vertex: obj_face.split("/")[0] - 1,

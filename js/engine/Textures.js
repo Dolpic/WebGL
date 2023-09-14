@@ -49,15 +49,18 @@ export default class Textures{
           [this.gl.TEXTURE_CUBE_MAP_NEGATIVE_Z, "nz.png"]
         ]
         let completed = 0
-        faces.forEach(face => {
-          this.loadImage(folder+"/"+face[1], img => {
-            this.gl.bindTexture(this.gl.TEXTURE_CUBE_MAP, tex.texture)
-            this.gl.texImage2D(face[0], 0, this.gl.RGBA, size, size, 0, this.gl.RGBA, this.gl.UNSIGNED_BYTE, img)
-            if(++completed==6){
-              this.gl.generateMipmap(this.gl.TEXTURE_CUBE_MAP)
-              this.gl.texParameteri(this.gl.TEXTURE_CUBE_MAP, this.gl.TEXTURE_MIN_FILTER, this.gl.LINEAR_MIPMAP_LINEAR)
-            }
+        if(folder != "ressources/cubemaps/null"){
+          faces.forEach(face => {
+            this.loadImage(folder+"/"+face[1], img => {
+              this.gl.bindTexture(this.gl.TEXTURE_CUBE_MAP, tex.texture)
+              this.gl.texImage2D(face[0], 0, this.gl.RGBA, size, size, 0, this.gl.RGBA, this.gl.UNSIGNED_BYTE, img)
+              if(++completed==6){
+                this.gl.generateMipmap(this.gl.TEXTURE_CUBE_MAP)
+                this.gl.texParameteri(this.gl.TEXTURE_CUBE_MAP, this.gl.TEXTURE_MIN_FILTER, this.gl.LINEAR_MIPMAP_LINEAR)
+              }
+            })
           })
-        })
+        }
+       
     }
 }

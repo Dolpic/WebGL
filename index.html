@@ -14,52 +14,77 @@
         </script>
     </head>
     <body onload="init();start()">
-        <div>
-            <div id="parameters" class="panel"></div>
-            <div id="debug_panel" class="panel">
-                <details>
-                    <summary><h2>Debug</h2></summary>
-                    <table>
-                        <tr><td>FPS : </td><td id="fps"></td></tr>
-                        <tr><td>Refresh rate : </td><td id="refresh_rate"></td></tr>
-                    </table>
-                    <input onchange="params.depth_test=this.checked;restart()" id="depth_test" type="checkbox" checked/><label>Enable depth testing</label>
-                    <input onchange="params.show_shadow_map=this.checked;restart()" id="show_shadow_map" type="checkbox" unchecked/><label>Show shadow map</label>
-                    <br>
-                    <label>Depth test function</label>
-                    <select onchange="restart()" id="depth_func">
-                        <option value="NEVER">Never</option>
-                        <option value="ALWAYS">Always</option>
-                        <option value="LESS">Less</option>
-                        <option value="EQUAL">Equal</option>
-                        <option value="LEQUAL" selected="selected">Less or equal</option>
-                        <option value="GREATER">Greater</option>
-                        <option value="GEQUAL">Greater or equal</option>
-                        <option value="NOTEQUAL">Not equal</option>
-                    </select>
-                    <div id="projection_matrix"></div>
-                    <div id="view_matrix"></div>
-                </details>
+        <h1 class="main_title">Tiny WebGL Engine</h1>
+        <p class="subtitle">Simple 3D engine build in WebGL from scratch</p>
+        <hr>
+        <br>
+        <div id="main_content">
+            <div>
+                <div id="parameters" class="panel"></div>
+                <div id="debug_panel" class="panel">
+                    <details>
+                        <summary>Parameters</summary>
+                        <table>
+                            <tr><td>FPS : </td><td id="fps"></td></tr>
+                            <tr><td>Refresh rate : </td><td id="refresh_rate"></td></tr>
+                        </table>
+                        <input onchange="params.depth_test=this.checked;restart()" id="depth_test" type="checkbox" checked/><label>Enable depth testing</label>
+                        <br>
+                        <input onchange="params.show_shadow_map=this.checked;restart()" id="show_shadow_map" type="checkbox" unchecked/><label>Show shadow map</label>
+                        <br>
+                        <label>Depth test function</label>
+                        <select onchange="restart()" id="depth_func">
+                            <option value="NEVER">Never</option>
+                            <option value="ALWAYS">Always</option>
+                            <option value="LESS">Less</option>
+                            <option value="EQUAL">Equal</option>
+                            <option value="LEQUAL" selected="selected">Less or equal</option>
+                            <option value="GREATER">Greater</option>
+                            <option value="GEQUAL">Greater or equal</option>
+                            <option value="NOTEQUAL">Not equal</option>
+                        </select>
+                        <br>
+                        <label>Skybox</label><select id="skybox_select" onchange="skybox=this.value;restart()">
+                            <option value="null">None</option>
+                            <option value="debug">Debug</option>
+                            <option value="field_sunset" selected="selected">Sunset field</option>
+                            <option value="underground">Underground</option>
+                        </select>
+                    </details>
+                </div>
             </div>
+            <canvas id="canvas" width="800" height="800"></canvas>
         </div>
-        <canvas id="canvas" width="800" height="800"></canvas>
+        <hr>
+        <div class="explanations">
+            <p>
+                This 3D model viewer is built from scratch in WebGL2. <br>
+                It is for now very limited, but has shadows computed from the cone light rotation and specular computed from the point light.
+                The objects reflection can be set in the Material tab, it reflects the current skybox. <br>
+                More objects can be added from the Objects tab.
+                This is an experimental work-in-progress project, issues can be found under certain parameters.
+            </p>
+        </div>
     </body>    
     <script>
         function init(){
             let lightsContent = (
-                generateSliders("AL",  ["R","G","B"], 0,   1,   "Ambiant light color") +
-                generateSliders("DL",  ["R","G","B"], 0,   1,   "Directional light color") +
+                generateSliders("AL",  ["R","G","B"], 0,   1,   "Ambiant light color",        [0,0,0]) +
+                generateSliders("DL",  ["R","G","B"], 0,   1,   "Directional light color",    [0,0,0]) +
                 generateSliders("DL",  ["X","Y","Z"], -1,  1,   "Directional light direction") +
-                generateSliders("PL",  ["R","G","B"], 0,   1,   "Point light color") +
-                generateSliders("PL",  ["X","Y","Z"], -10, 10,  "Point light position") +
+                generateSliders("PL",  ["R","G","B"], 0,   1,   "Point light color",          [0,0,0]) +
+                generateSliders("PL",  ["X","Y","Z"], -10, 10,  "Point light position",       [6.8, 10, 9]) +
                 generateSliders("CL",  ["R","G","B"], 0,   1,   "Cone light color") +
-                generateSliders("CL",  ["X","Y","Z"], -10, 10,  "Cone light position") +
-                generateSliders("CLD", ["X","Y","Z"], -180,   180, "Cone light direction")
+                generateSliders("CL",  ["X","Y","Z"], -10, 10,  "Cone light position",        [6.8, 10, 9]) +
+                generateSliders("CLD", ["X","Y","Z"], -180,   180, "Cone light direction",    [-63, 10, 0])
             )
 
             getById("parameters").innerHTML = generateTabs("mainTab", [
-                ["View", ""], ["Lights", lightsContent], ["Objects", ""], ["Shaders", ""]
+                ["View", ""], ["Lights", lightsContent], ["Objects", ""], ["Shaders", ""], ["Material", ""]
             ])
+
+            getById("mainTab_View").style.display = "inline-block";
+            getById("mainTab").firstChild.classList.add("selectedTab")
 
             Shaders        = document.Shaders
             Shapes         = document.Shapes
@@ -70,6 +95,7 @@
             engine         = null
             needRestart    = false
             light_marker   = null
+            skybox         = getValue("skybox_select")
             params         = {}
         }
 
@@ -103,22 +129,29 @@
             needRestart = false
             params.depth_test_function = getDepthFunction()
 
+            const wavefronts = [
+                ["Dragon", "dragon/dragon_simple2.obj"]
+            ]
+
             engine = new Engine(getById("canvas"), Shaders.blinnPhongShadowmap, Shaders.shadowMap, params)
             engine.addObject(Shapes.Plane, "Ground")
-            engine.addObject(Shapes.Cube, "Cube_1", [0,2,1])
+            /*engine.addObject(Shapes.Cube, "Cube_1", [0,2,1])
             engine.addObject(Shapes.Cube, "Cube_2", [2,0,1])
             engine.addObject(Shapes.Cube, "Cube_3", [0,-2,2])
-            engine.addObject(Shapes.Cube, "Cube_4", [-2,0,1])
-            ModelHelper.loadWavefront("dragon/dragon.obj", "").then(obj => engine.addObject(obj, "Dragon"))
-            ModelHelper.loadWavefront("gizmo/gizmo.obj", "").then(obj => engine.addObject(obj, "Gizmo"))
-            engine.addObject(Shapes.LightMarker, "Light_marker", [0,0,0])
+            engine.addObject(Shapes.Cube, "Cube_4", [-2,0,1])*/
+            //ModelHelper.loadWavefront("dragon/dragon.obj", "").then(obj => engine.addObject(obj, "Dragon"))
+            //ModelHelper.loadWavefront("gizmo/gizmo.obj", "").then(obj => engine.addObject(obj, "Gizmo"))
+            //engine.addObject(Shapes.LightMarker, "Light_marker", [0,0,0])
 
-            engine.setCubemap("ressources/cubemaps/field_sunset")
-            engine.setSkybox(Shaders.skybox, "ressources/cubemaps/field_sunset")
+            ModelHelper.loadWavefronts(wavefronts, engine).then( () => generateObjectsTab(engine.objects.list))
 
-            generateObjectsTab(engine.objects.list)
+            engine.setCubemap("ressources/cubemaps/"+skybox)
+            engine.setSkybox(Shaders.skybox, "ressources/cubemaps/"+skybox)
+
             generateViewTab(engine)
+            generateMaterialTab()
             updateView(true)
+            updateMaterial()
 
             render(0)
         }
@@ -137,7 +170,7 @@
             engine.scene.lights.setDirectional(getDirLightColor(), getDirLightPos())
             engine.scene.lights.setPoint(getPointLightColor(), getPointLightPos())
             engine.scene.lights.setCone(getConeLightColor(), getConeLightPos(), getConeLightDir())
-            engine.setObjectTransform("Light_marker", getConeLightPos())
+            //engine.setObjectTransform("Light_marker", getConeLightPos())
 
             engine.render()
             needRestart ? start() : requestAnimationFrame(render)
@@ -158,23 +191,36 @@
         function generateViewTab(engine){
             getById("mainTab_View").innerHTML = (
                 generateTransformSliders("view", "updateView(true)", [[0,0,-26],[-71,0,-120],[1,1,1]]) +
+                "<p>View matrix : </p>"+
                 generateMatrix("view", `updateView(false)`, engine.getViewProjection().view) 
             )
         }
 
+        function updateMaterial(){
+            const specular = getValue("SpecularFactor")
+            const reflection = getValue("ReflectionFactor")
+            engine.scene.setMaterial(specular,reflection)
+        }
+        function generateMaterialTab(){
+            getById("mainTab_Material").innerHTML = 
+                generateSliders("Specular",   ["Factor"], 0, 5, "Specular",   null, "updateMaterial()") +
+                generateSliders("Reflection", ["Factor"], 0, 1, "Reflection", [0.1], "updateMaterial()")
+        }
+
         function updateObject(obj_name, fromSliders){
+            const obj_list = Object.values(engine.objects.list)
             if(fromSliders){
                 let obj_found = null 
-                Object.values(engine.objects).forEach(obj => {
+                obj_list.forEach(obj => {
                     if(obj.name == obj_name) {
                         obj_found = obj
-                        engine.setObjectTransform(obj, ...getTransformSlidersValues(obj_name))
+                        engine.setObjectTransform(obj_name, ...getTransformSlidersValues(obj_name))
                     }
                 })
                 setMatrixValues(obj_name, obj_found.modelMatrix)
             }else{
                 let values = getMatrixValues(obj_name)
-                Object.values(engine.objects).forEach(obj => {
+                obj_list.forEach(obj => {
                     if(obj.name == obj_name) {
                         obj.modelMatrix = values
                     }
@@ -184,12 +230,44 @@
         function generateObjectsTab(objs){
             let names_content = []
             Object.values(objs).forEach( (obj, i) => {
-                let content = `Number of triangles : ${obj.count}<div id="objects_details_${i}_matrix"></div>`
+                let content = `Number of vertices : ${obj.count}<div id="objects_details_${i}_matrix"></div>`
                 content += generateTransformSliders(obj.name, `updateObject('${obj.name}', true)`)
+                content += "<p>Model matrix :</p>"
                 content += generateMatrix(obj.name, `updateObject('${obj.name}', false)`, obj.modelMatrix)
                 names_content.push([obj.name, content])
             })
-            getById("mainTab_Objects").innerHTML = generateTabs("objectsTab", names_content)
+            getById("mainTab_Objects").innerHTML = 
+                `<select id="model_selection">
+                    <option value="1">Standford Dragon</option> 
+                    <option value="2">Utah Teapot</option>
+                    <option value="3">Suzanne (blender)</option>  
+                    <option value="4">Gizmo</option>  
+                </select>
+                <button onclick="addModel()">Add</button>
+                <hr>` +
+                generateTabs("objectsTab", names_content)
+        }
+
+        function addModel(){
+            const model_id = parseInt(getById("model_selection").value)
+            let model = null
+            switch (model_id) {
+                case 1 :
+                    model = ["Dragon", "dragon/dragon_simple2.obj"]
+                    break
+                case 2 :
+                    model = ["Teapot", "teapot/teapot_simple.obj"]
+                    break
+                case 3 :
+                    model = ["Suzanne", "suzanne/suzanne_simple.obj"]
+                    break
+                case 4 :
+                    model = ["Gizmo", "gizmo/gizmo.obj"]
+                    break
+                default:
+                    return
+            }
+            ModelHelper.loadWavefronts([model], engine).then( () => generateObjectsTab(engine.objects.list))
         }
     </script>  
 </html>

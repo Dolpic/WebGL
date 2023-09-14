@@ -76,6 +76,12 @@ export default class Scene{
         this.shadowMap.program.clearAndDraw(objects)
     }
 
+    setMaterial(specular, reflection){
+        this.program.setVec3("specularColor", [1,1,1])
+        this.program.setFloat("specularPower", specular)
+        this.program.setFloat("reflectionFactor", reflection)
+    }
+
     setSkybox(shaders, folder){
         this.skybox = {
             program : new Program(this.gl, shaders),

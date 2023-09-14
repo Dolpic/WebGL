@@ -38,6 +38,11 @@ export default class Program{
         if(value != null) this.gl.uniform3fv(this.gl.getUniformLocation(this.program, name), value)
     }
 
+    setFloat(name, value){
+        this.gl.useProgram(this.program)
+        if(value != null) this.gl.uniform1f(this.gl.getUniformLocation(this.program, name), value)
+    }
+
     setTextureUnit(name, value){
         this.gl.useProgram(this.program)
         if(value != null) this.gl.uniform1i(this.gl.getUniformLocation(this.program, name), value)

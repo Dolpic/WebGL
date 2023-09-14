@@ -75,14 +75,17 @@ export default {
     uniform vec3 uLightPointColor;
     uniform vec3 uLightConeColor;
 
+    uniform float specularPower;
+    uniform vec3  specularColor;
+
+    uniform float reflectionFactor;
+
     out vec4 color;
 
     const float shadow_bias = -0.003;
     const float coneLighEffectSmoothLow  = 0.48;
     const float coneLighEffectSmoothHigh = 0.55;
     const float shadowReduce = 0.3;
-    const float specularPower = 50.0;
-    const vec3 specularColor = vec3(1.0,0.0,0.0);
 
     float cappedAngleWithNormal(vec3 vector) {
         return max(dot(normalize(vNormal), vector), 0.0);
@@ -105,19 +108,14 @@ export default {
         color = vec4( (vColor.rgb + texture(uTexture, vTextureCoord).rgb) * lightingFactor, vColor.a);
 
         float specular = cappedAngleWithNormal(normalize(vnSurfaceToLight+vnSurfaceToCam));
-        color.rgb += pow(specular, specularPower) * specularColor;
+        color.rgb += pow(specular, specularPower*100.0) * specularColor;
 
         vec3 shadowMapCoord = vShadowMapCoord.xyz / vShadowMapCoord.w;
         bool isInShadow = texture(uShadowMap, shadowMapCoord.xy).r < shadowMapCoord.z + shadow_bias ;
         color = vec4(isInShadow ? color.rgb*shadowReduce : color.rgb, color.a);
 
-        //color = 0.01*color + vec4( texture(uShadowMap, shadowMapCoord.xy).rg, 1.0, 1.0);
-
         vec3 dir = (inverse(uMatrixView)*vec4(reflect(-vnSurfaceToCam, normalize(vNormal)), 1.0)).xzy;
-        color = 0.7*color + 0.3*texture(uCubemap, dir);
+        color = (1.0-reflectionFactor)*color + reflectionFactor*texture(uCubemap, dir);
 
-        //colors = vec4( texture(uTexture, projectedTexcoord.xy).rrr , 1.0);
-        //float grey = projectedTexcoord.z;
-        //colors = vec4( grey,grey,grey, 1.0);
     }`
 }
