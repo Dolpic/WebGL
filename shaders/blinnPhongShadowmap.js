@@ -6,7 +6,6 @@ export default {
     in vec3 aNormal;
     in vec2 aTexCoord;
 
-
     uniform mat4 uMatrixShadowMap;
     uniform vec3 uLightPointPosition;
     uniform vec3 uLightDirectionalDirection;
@@ -32,16 +31,18 @@ export default {
 
     void main() {
         vec4 modelPosition = uMatrixModel * aPosition;
+        vec3 modelNormal   = mat3(uMatrixModel) * aNormal;
+
         gl_Position = uMatrixProjection * uMatrixView * modelPosition;
 
         vColor        = aColor;
         vTextureCoord = aTexCoord;
 
         vShadowMapCoord =  uMatrixShadowMap * modelPosition;
-        vNormal = mat3(transpose(inverse(uMatrixView))) * aNormal;
-        vSurfaceToCam       = (uMatrixView * -aPosition).xyz;
-        vSurfaceToLight     = mat3(uMatrixView) * (uLightPointPosition - aPosition.xyz);
-        vSurfaceToConeLight = mat3(uMatrixView) * (uLightConePosition  - aPosition.xyz);
+        vNormal = mat3(transpose(inverse(uMatrixView))) * modelNormal;
+        vSurfaceToCam       = (uMatrixView * -modelPosition).xyz;
+        vSurfaceToLight     = mat3(uMatrixView) * (uLightPointPosition - modelPosition.xyz);
+        vSurfaceToConeLight = mat3(uMatrixView) * (uLightConePosition  - modelPosition.xyz);
         vSurfaceToDirLight  = mat3(uMatrixView) * (-uLightDirectionalDirection);
         vLightConeDirection = mat3(uMatrixView) * uLightConeDirection;
     }`,
@@ -114,7 +115,7 @@ export default {
         bool isInShadow = texture(uShadowMap, shadowMapCoord.xy).r < shadowMapCoord.z + shadow_bias ;
         color = vec4(isInShadow ? color.rgb*shadowReduce : color.rgb, color.a);
 
-        vec3 dir = (inverse(uMatrixView)*vec4(reflect(-vnSurfaceToCam, normalize(vNormal)), 1.0)).xzy;
+        vec3 dir = normalize(vec4(reflect(  mat3(inverse(uMatrixView))*-vnSurfaceToCam  , normalize(  mat3(inverse(uMatrixView))*vNormal  )), 1.0)).xzy;
         color = (1.0-reflectionFactor)*color + reflectionFactor*texture(uCubemap, dir);
 
     }`
