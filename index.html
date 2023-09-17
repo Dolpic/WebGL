@@ -59,10 +59,20 @@
         <div class="explanations">
             <p>
                 This 3D model viewer is built from scratch in WebGL2. <br>
-                It is for now very limited, but has shadows computed from the cone light rotation and specular computed from the point light.
-                The object's reflection can be set in the Material tab, it reflects the current skybox. <br>
-                More objects can be added from the Objects tab.
-                This is an experimental work-in-progress project, issues can be found with some set of parameters.
+                It is for now very limited, but has the following graphics properties :
+            </p>
+                <ul>
+                    <li>One ambient light</li>
+                    <li>One directional light, casting no shadows</li>
+                    <li>One point light, casting omnidirectional shadows and specular</li>
+                    <li>One cone light, casting directional shadows in orthographic perspective</li>
+                    <li>A skybox</li>
+                    <li>Textures, for now only one for the whole scene</li>
+                    <li>Reflective material, reflecting the skybox only (for now !)</li>
+                    <li>A few models, with parameters to change their transform</li>
+                </ul>
+            <p>
+                Some features are still lacking, and some combinations of parameters can produce unrealistic-looking scenes.
             </p>
         </div>
     </body>    
@@ -135,6 +145,8 @@
 
             engine = new Engine(getById("canvas"), Shaders.blinnPhongShadowmap, Shaders.shadowMap, params)
             engine.addObject(Shapes.Plane, "Ground")
+            //engine.addObject(Shapes.Plane, "WallX", [-10,0,10], [0,90,0])
+            //engine.addObject(Shapes.Plane, "WallY", [0,-10,10], [90,0,0])
             /*engine.addObject(Shapes.Cube, "Cube_1", [0,2,1])
             engine.addObject(Shapes.Cube, "Cube_2", [2,0,1])
             engine.addObject(Shapes.Cube, "Cube_3", [0,-2,2])

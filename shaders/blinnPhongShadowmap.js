@@ -7,6 +7,7 @@ export default {
     in vec2 aTexCoord;
 
     uniform mat4 uMatrixShadowMap;
+    uniform mat4 uMatrixOmniShadowMap;
     uniform vec3 uLightPointPosition;
     uniform vec3 uLightDirectionalDirection;
     uniform vec3 uLightConePosition;
@@ -27,6 +28,8 @@ export default {
     out lowp vec3 vSurfaceToConeLight;
     out lowp vec3 vSurfaceToDirLight;
     out lowp vec4 vShadowMapCoord;
+    out lowp vec4 vOmniShadowMapCoord;
+    out lowp vec3 vModelLightToPos;
     out lowp vec3 vLightConeDirection;
 
     void main() {
@@ -38,7 +41,10 @@ export default {
         vColor        = aColor;
         vTextureCoord = aTexCoord;
 
-        vShadowMapCoord =  uMatrixShadowMap * modelPosition;
+        vShadowMapCoord     = uMatrixShadowMap * modelPosition;
+        vOmniShadowMapCoord = uMatrixOmniShadowMap * modelPosition;
+        vModelLightToPos = modelPosition.xyz - uLightPointPosition;
+
         vNormal = mat3(transpose(inverse(uMatrixView))) * modelNormal;
         vSurfaceToCam       = (uMatrixView * -modelPosition).xyz;
         vSurfaceToLight     = mat3(uMatrixView) * (uLightPointPosition - modelPosition.xyz);
@@ -64,12 +70,15 @@ export default {
     in lowp vec3 vLightConeDirection;
 
     in lowp vec4 vShadowMapCoord;
+    in lowp vec4 vOmniShadowMapCoord;
+    in lowp vec3 vModelLightToPos;
 
     uniform mat4 uMatrixView;
 
     uniform sampler2D uTexture;
     uniform sampler2D uShadowMap;
     uniform samplerCube uCubemap;
+    uniform samplerCube uOmniShadowMap;
 
     uniform vec3 uLightAmbientColor;
     uniform vec3 uLightDirectionalColor;
@@ -111,12 +120,27 @@ export default {
         float specular = cappedAngleWithNormal(normalize(vnSurfaceToLight+vnSurfaceToCam));
         color.rgb += pow(specular, specularPower*100.0) * specularColor;
 
+        // Shadowmap
         vec3 shadowMapCoord = vShadowMapCoord.xyz / vShadowMapCoord.w;
         bool isInShadow = texture(uShadowMap, shadowMapCoord.xy).r < shadowMapCoord.z + shadow_bias ;
         color = vec4(isInShadow ? color.rgb*shadowReduce : color.rgb, color.a);
 
+        // OmniShadowMap
+        // vec3(-vModelLightToPos.x, -vModelLightToPos.y, vModelLightToPos.z)
+        vec3 omniShadowMapCoord = vOmniShadowMapCoord.xyz / vOmniShadowMapCoord.w;
+        float maxCoord = max( abs(vModelLightToPos.x), max(abs(vModelLightToPos.y), abs(vModelLightToPos.z)));
+        float far = 200.0;
+        float near = 0.1;
+        float magnitude = ((far+near)/(far-near)) + (1.0/maxCoord)*( (-2.0*far*near)/(far-near) );  //(maxCoord-0.1)/(200.0-0.1);
+        isInShadow = texture(uOmniShadowMap, vModelLightToPos).r < magnitude + shadow_bias ;
+        color = vec4(isInShadow ? color.rgb*shadowReduce : color.rgb, color.a);
+
+
         vec3 dir = normalize(vec4(reflect(  mat3(inverse(uMatrixView))*-vnSurfaceToCam  , normalize(  mat3(inverse(uMatrixView))*vNormal  )), 1.0)).xzy;
         color = (1.0-reflectionFactor)*color + reflectionFactor*texture(uCubemap, dir);
+
+        //color *= vec4(magnitude,magnitude,magnitude,1.0);
+        //color *= pow(texture(uOmniShadowMap, vModelLightToPos ).r, 50.0);
 
     }`
 }

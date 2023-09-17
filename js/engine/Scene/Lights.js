@@ -59,4 +59,10 @@ export default class Lights extends SceneComponent{
             direction: this.coneDirectionDegree
         }
     }
+
+    getPoint(){
+        return{
+            position: this.pointPos
+        }
+    }
 }

@@ -22,6 +22,7 @@ export default class RenderingEngine{
 
         if(this.params.with_shadow_map){
             this.scene.createShadowMap(shadowShaders, this.params.shadow_map_size)
+            this.scene.createOmniShadowMap(shadowShaders, this.params.shadow_map_size)
         }
     }
     

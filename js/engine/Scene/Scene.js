@@ -29,8 +29,8 @@ export default class Scene{
         textureList.forEach(t => this.createTexture(t, "uTexture"))
     }
 
-    createDepthTexture(location, size){
-        return this.textures.createDepthTexture(location, this.program, size)
+    createDepthTexture(location, size, type=this.gl.TEXTURE_2D){
+        return this.textures.createDepthTexture(location, this.program, size, type)
     }
 
     createCubemap(folder){
@@ -58,6 +58,52 @@ export default class Scene{
         this.program.setMatrix4(Utils.names.mat.shadowMap, this.shadowMap.lightMatrix)
     }
 
+    useOmniShadowMap(objects){
+        const point = this.lights.getPoint()
+
+        const cameraRotations = [
+            [0, -90, 180],  // OK
+            [0, 90, 180],   // OK
+
+            [90, 0, 0], // OK
+            [90, 180, 180],  // Could be improved
+
+            [180, 0, 0], 
+            [0, 0, 180], // OK
+        ]
+
+        /*
+            [0,   0,   0],
+            [180, 0,   0],
+            [0,   0,   90],
+            [0,   0,   270],
+            [0,   90,  0],
+            [0,   270, 0]
+            ---
+            [270, 0, 90],
+            [270, 0, 270],
+            [270, 0, 0],
+            [270, 0, 180],
+            [0,   0, 0],
+            [180, 0, 0]
+        */
+
+        for(let i=0; i<6; i++){
+            this.omniShadowMap.camera.setCamera(point.position, cameraRotations[i])
+            this.omniShadowMap.framebuffers[i].use() 
+            this.omniShadowMap.program.clearAndDraw(objects)
+        }
+        /*this.omniShadowMap.camera.setCamera(point.position, cameraRotations[1])
+        this.useDefaultFramebuffer()
+        this.omniShadowMap.program.clearAndDraw(objects)*/
+
+        Utils.transformMatrix(this.omniShadowMap.lightMatrix, [0.5,0.5,0.5], [0,0,0], [0.5,0.5,0.5])
+        const camMatrices = this.omniShadowMap.camera.getMatrices()
+        glMatrix.mat4.multiply(this.omniShadowMap.lightMatrix, this.omniShadowMap.lightMatrix, camMatrices.projection)
+        glMatrix.mat4.multiply(this.omniShadowMap.lightMatrix, this.omniShadowMap.lightMatrix, camMatrices.view)
+        this.program.setMatrix4(Utils.names.mat.omniShadowMap, this.omniShadowMap.lightMatrix)
+    }
+
     createShadowMap(shaders, size){
         const program = new Program(this.gl, shaders)
         const depthTexture = this.createDepthTexture(Utils.names.tex.shadowMap, size)
@@ -71,9 +117,34 @@ export default class Scene{
         this.shadowMap.camera.setOrthoProjection(-10, 10, -10, 10, 0.1, 200)
     }
 
+    createOmniShadowMap(shaders, size){
+        const program = new Program(this.gl, shaders)
+        const depthTexture = this.createDepthTexture(Utils.names.tex.omniShadowMap, size, this.gl.TEXTURE_CUBE_MAP)
+        this.omniShadowMap = {
+            program : program,
+            texture : depthTexture,
+            camera  : new Camera(program, size),
+            framebuffers :  [
+                new Framebuffer(this.gl, size, depthTexture, this.gl.TEXTURE_CUBE_MAP_POSITIVE_X),
+                new Framebuffer(this.gl, size, depthTexture, this.gl.TEXTURE_CUBE_MAP_NEGATIVE_X),
+                new Framebuffer(this.gl, size, depthTexture, this.gl.TEXTURE_CUBE_MAP_POSITIVE_Y),
+                new Framebuffer(this.gl, size, depthTexture, this.gl.TEXTURE_CUBE_MAP_NEGATIVE_Y),
+                new Framebuffer(this.gl, size, depthTexture, this.gl.TEXTURE_CUBE_MAP_POSITIVE_Z),
+                new Framebuffer(this.gl, size, depthTexture, this.gl.TEXTURE_CUBE_MAP_NEGATIVE_Z),
+            ],
+            lightMatrix : glMatrix.mat4.create()
+        }
+        //this.omniShadowMap.camera.setOrthoProjection(-10, 10, -10, 10, 0.1, 200)
+        this.omniShadowMap.camera.setProjection(this.screenSize.width/this.screenSize.height, 90)
+    }
+
     renderShadowMap(objects){
         this.useShadowMap()
         this.shadowMap.program.clearAndDraw(objects)
+    }
+
+    renderOmniShadowMap(objects){
+        this.useOmniShadowMap(objects)
     }
 
     setMaterial(specular, reflection){
@@ -107,6 +178,7 @@ export default class Scene{
     render(objects){
         if(this.shadowMap != null){
             this.renderShadowMap(objects)
+            this.renderOmniShadowMap(objects)
         }
 
         if(!this.params.show_shadow_map){

@@ -2,6 +2,15 @@ export default class Textures{
     constructor(glContext){
         this.gl = glContext
         this.texture_counter = 0
+
+        this.cubemapFaces = [
+          this.gl.TEXTURE_CUBE_MAP_POSITIVE_X,
+          this.gl.TEXTURE_CUBE_MAP_NEGATIVE_X,
+          this.gl.TEXTURE_CUBE_MAP_POSITIVE_Y,
+          this.gl.TEXTURE_CUBE_MAP_NEGATIVE_Y,
+          this.gl.TEXTURE_CUBE_MAP_POSITIVE_Z,
+          this.gl.TEXTURE_CUBE_MAP_NEGATIVE_Z
+        ]
     }
 
     loadImage(src, callback){
@@ -30,23 +39,29 @@ export default class Textures{
         return tex.texture
     }
 
-    createDepthTexture(location_name, program, size){
-        const tex = this._new(location_name, program)
-        this.gl.texImage2D(this.gl.TEXTURE_2D, 0, this.gl.DEPTH_COMPONENT32F, size.width, size.height, 0, this.gl.DEPTH_COMPONENT, this.gl.FLOAT, null)
-        this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MAG_FILTER, this.gl.NEAREST)
-        this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MIN_FILTER, this.gl.NEAREST)
+    createDepthTexture(location_name, program, size, type=this.gl.TEXTURE_2D){
+        const tex = this._new(location_name, program, type)
+        if(type == this.gl.TEXTURE_2D){
+          this.gl.texImage2D(type, 0, this.gl.DEPTH_COMPONENT32F, size.width, size.height, 0, this.gl.DEPTH_COMPONENT, this.gl.FLOAT, null)
+        }else{
+          this.cubemapFaces.forEach(face => {
+            this.gl.texImage2D(face, 0, this.gl.DEPTH_COMPONENT32F, size.width, size.height, 0, this.gl.DEPTH_COMPONENT, this.gl.FLOAT, null)
+          })
+        }
+        this.gl.texParameteri(type, this.gl.TEXTURE_MAG_FILTER, this.gl.NEAREST)
+        this.gl.texParameteri(type, this.gl.TEXTURE_MIN_FILTER, this.gl.NEAREST)
         return tex.texture
     }
 
     createCubemap(folder, program, size=512){
         const tex = this._new("uCubemap", program, this.gl.TEXTURE_CUBE_MAP)
         let faces = [
-          [this.gl.TEXTURE_CUBE_MAP_POSITIVE_X, "px.png"],
-          [this.gl.TEXTURE_CUBE_MAP_NEGATIVE_X, "nx.png"],
-          [this.gl.TEXTURE_CUBE_MAP_POSITIVE_Y, "py.png"],
-          [this.gl.TEXTURE_CUBE_MAP_NEGATIVE_Y, "ny.png"],
-          [this.gl.TEXTURE_CUBE_MAP_POSITIVE_Z, "pz.png"],
-          [this.gl.TEXTURE_CUBE_MAP_NEGATIVE_Z, "nz.png"]
+          [this.cubemapFaces[0], "px.png"],
+          [this.cubemapFaces[1], "nx.png"],
+          [this.cubemapFaces[2], "py.png"],
+          [this.cubemapFaces[3], "ny.png"],
+          [this.cubemapFaces[4], "pz.png"],
+          [this.cubemapFaces[5], "nz.png"]
         ]
         let completed = 0
         if(folder != "ressources/cubemaps/null"){

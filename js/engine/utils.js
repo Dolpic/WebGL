@@ -38,11 +38,13 @@ export const names = {
         model:      "uMatrixModel",
         view:       "uMatrixView",
         projection: "uMatrixProjection",
-        shadowMap:  "uMatrixShadowMap"
+        shadowMap:  "uMatrixShadowMap",
+        omniShadowMap: "uMatrixOmniShadowMap"
     },
     tex:{
-        texture:   "uTexture",
-        shadowMap: "uShadowMap",
-        cubemap:   "uCubemap"
+        texture:        "uTexture",
+        shadowMap:      "uShadowMap",
+        omniShadowMap : "uOmniShadowMap",
+        cubemap:        "uCubemap"
     }
 }
