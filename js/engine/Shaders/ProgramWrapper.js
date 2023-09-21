@@ -18,26 +18,6 @@ export default class Program{
             alert('Error initializing the program : ' + this.gl.getProgramInfoLog(this.program))
         }
     }
-
-    setMatrix4(name, value, transpose=false){
-        this.gl.useProgram(this.program)
-        if(value != null) this.gl.uniformMatrix4fv(this.gl.getUniformLocation(this.program, name), transpose, value)
-    }
-
-    setVec3(name, value){
-        this.gl.useProgram(this.program)
-        if(value != null) this.gl.uniform3fv(this.gl.getUniformLocation(this.program, name), value)
-    }
-
-    setFloat(name, value){
-        this.gl.useProgram(this.program)
-        if(value != null) this.gl.uniform1f(this.gl.getUniformLocation(this.program, name), value)
-    }
-
-    setTextureUnit(name, value){
-        this.gl.useProgram(this.program)
-        if(value != null) this.gl.uniform1i(this.gl.getUniformLocation(this.program, name), value)
-    }
     
     clearAndDraw(objects, mode=this.gl.TRIANGLES){
         this.gl.clear(this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT)

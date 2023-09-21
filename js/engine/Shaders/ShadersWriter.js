@@ -28,6 +28,10 @@ export default class ShadersWriter{
         this.endl = ";\n"
     }
 
+    addVertexPrePositionContent(expression){
+        this.vertex.pre_position.push({content: expression})
+    }
+
     setVertexGlPosition(expression){
         this.vertex.gl_Position = expression
     }
