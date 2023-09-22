@@ -4,6 +4,7 @@ import Program from "../Program.js"
 import Camera from "./Camera.js"
 import Lights from "./Lights.js"
 import Framebuffer from "./Framebuffer.js"
+import ProgramWrapper from "../Shaders/ProgramWrapper.js"
 
 export default class Scene{
     constructor(glContext, screenSize, shaders, textures, params){
@@ -18,6 +19,8 @@ export default class Scene{
         this.lights = new Lights(this.program)
         this.shadowMap   = null
         this.skybox      = null
+
+        this.wrapper = new ProgramWrapper(glContext)
     }
 
     createTexture(image, location, with_mipmap){

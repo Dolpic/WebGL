@@ -3,135 +3,126 @@ import ShadersWriter, {Types} from "./ShadersWriter.js"
 export default class Shaders{
     constructor(glContext, program){
         this.gl = glContext
-        this.program = program
-        this.shaderWriter = new ShadersWriter
+        this.sw = new ShadersWriter(glContext, program)
     }
-
-
-    setMatrix4(name, value, transpose=false){
-        this.gl.useProgram(this.program)
-        this.gl.uniformMatrix4fv(this.gl.getUniformLocation(this.program, name), transpose, value)
-    }
-
-    setVec3(name, value){
-        this.gl.useProgram(this.program)
-        this.gl.uniform3fv(this.gl.getUniformLocation(this.program, name), value)
-    }
-
-    setFloat(name, value){
-        this.gl.useProgram(this.program)
-        this.gl.uniform1f(this.gl.getUniformLocation(this.program, name), value)
-    }
-
-    setTextureUnit(name, value){
-        this.gl.useProgram(this.program)
-        this.gl.uniform1i(this.gl.getUniformLocation(this.program, name), value)
-    }
-
 
     createVAO(){
-        this.shaderWriter.addVertexAttribute(Types.vec4, "aPosition")
-        this.shaderWriter.addVertexAttribute(Types.vec4, "aColor")
-        this.shaderWriter.addVertexAttribute(Types.vec3, "aNormal")
-        this.shaderWriter.addVertexAttribute(Types.vec2, "aTexCoord")
-        this.shaderWriter.addVertexOut(Types.vec4, "vColor", "aColor")
-        this.shaderWriter.addVertexOut(Types.vec2, "vTextureCoord", "aTexCoord")
+        this.sw.addVertexAttribute(Types.vec4, "iPosition")
+        this.sw.addVertexAttribute(Types.vec4, "iColor")
+        this.sw.addVertexAttribute(Types.vec3, "iNormal")
+        this.sw.addVertexAttribute(Types.vec2, "iTexCoord")
+        this.sw.addVertexOut(Types.vec4, "vColor", "iColor")
+        this.sw.addVertexOut(Types.vec2, "vTextureCoord", "iTexCoord")
+        return {position:"iPosition", color:"iColor", normal:"iNormal", texCoord: "iTexCoord"}
     }
+
+    createDefaultMatrices(iPosition, iNormal){
+        this.sw.addVertexUniform(Types.mat4, "uMatModel")
+        this.sw.addVertexUniform(Types.mat4, "uMatView")
+        this.sw.addVertexUniform(Types.mat4, "uMatProjection")
+
+        this.sw.addVertexPrePositionContent(`vec4 modelPosition = uMatModel * ${iPosition}`)
+        this.sw.addVertexPrePositionContent(`vec3 modelNormal   = mat3(uMatModel) * ${iNormal}`)
+
+        this.sw.setVertexGlPosition("matProjection * uMatView * modelPosition")
+        this.sw.addVertexOut(Types.vec3, "vNormal", "mat3(transpose(inverse(uMatView))) * modelNormal")
+        this.sw.addVertexOut(Types.vec3, "v_view_SurfaceToCam", "normalize((uMatView * -modelPosition).xyz)")
+        return {
+            model:"uMatModel", 
+            view:"uMatView", 
+            projection:"uMatProjection", 
+            modelNormal:"modelNormal", 
+            modelPosition:"modelPosition",
+            surfaceToCam: "v_view_SurfaceToCam"
+        }
+    }
+
+    createTexture(withReflection=false, matView=null, vNormal=null, surfaceToCam=null, cubemap=null){
+        this.sw.addVertexUniform(Types.float, "reflectionFactor")
+        if(withReflection){
+            this.sw.addFragmentContent(`vec3 reflectionDir = normalize(vec4(reflect(  mat3(inverse(${matView}))*-${surfaceToCam}, normalize(mat3(inverse(${matView}))*${vNormal}) ), 1.0)).xzy`)
+            this.sw.addFragmentColorModifier(`color = (1.0-reflectionFactor)*color + reflectionFactor*texture(${cubemap}, reflectionDir)`)
+        }
+    }
+
+    createAmbientLight(){
+        this.sw.addFragmentUniform(Types.vec3, "uLightAmbientColor")
+    }
+
+    createDirectionalLight(matView){
+        this.sw.addVertexUniform(Types.vec3, "uLightDirDir")
+        this.sw.addVertexOut(Types.vec3, `v_view_surfaceToDirLight", "normalize(mat3(${matView}) * (-uLightDirDir))`)
+        this.sw.addFragmentUniform(Types.vec3, "uLightDirColor")
+        this.sw.addFragmentContent(`vec3 directionalLight = uLightDirColor * cappedAngleWithNormal(v_view_surfaceToDirLight)`)
+    }
+
+    createPointLight(matView, modelPosition, withSpecular=false, surfaceToCam=null){
+        this.sw.addVertexUniform(Types.vec3, "uLightPointPosition")
+        this.sw.addVertexOut(Types.vec3, "v_view_surfaceToPointLight", `normalize(mat3(${matView}) * (uLightPointPosition - ${modelPosition}.xyz))`)
+        this.sw.addVertexOut(Types.vec3, "v_model_pointLightToSurface", `${modelPosition}.xyz - uLightPointPosition`)
+        this.sw.addFragmentUniform(Types.vec3, "uLightPointColor")
+        if(withSpecular){
+            this.sw.addFragmentUniform(Types.float, "uLightPointSpecularPower")
+            this.sw.addFragmentUniform(Types.vec3, "uLightPointSpecularColor")
+            this.sw.addFragmentContent(`float specular = cappedAngleWithNormal(normalize(v_view_surfaceToPointLight+${surfaceToCam}))`)
+            this.sw.addFragmentColorModifier("color.rgb += pow(specular, uLightPointSpecularPower*100.0) * uLightPointSpecularColor")
+            this.sw.addFragmentContent(`vec3 pointLight = uLightPointColor * cappedAngleWithNormal(v_view_surfaceToPointLight)`)
+        }
+        return {model_lightToSurface:"v_model_pointLightToSurface"}
+    }
+
+    createConeLight(matView){
+        this.sw.addVertexUniform(Types.vec3, "uLightConePosition")
+        this.sw.addVertexUniform(Types.vec3, "uLightConeDir")
+        this.sw.addVertexOut(Types.vec3, "v_view_surfaceToConeLight", `normalize(mat3(${matView}) * (uLightConePosition  - modelPosition.xyz))`)
+        this.sw.addVertexOut(Types.vec3, "v_view_coneLightDir", `normalize(mat3(${matView}) * uLightConeDirection)`)
+        this.sw.addFragmentUniform(Types.vec3, "uLightConeColor")
+        this.sw.addFragmentContent(`
+            float coneLightEffect = smoothstep(coneLighEffectSmoothLow, coneLighEffectSmoothHigh, dot(v_view_surfaceToConeLight, uLightConeDir));
+            vec3 coneLight        = uLightConeColor        * cappedAngleWithNormal(v_view_surfaceToConeLight) * coneLightEffect
+        `)
+    }
+
+    createDirectionalShadowMap(modelPosition){
+        this.sw.addVertexUniform(Types.mat4, "uMatDirShadowMap")
+        this.sw.addVertexOut(Types.vec4, "vDirShadowMapCoord", `uMatDirShadowMap * ${modelPosition}`)
+        this.sw.addFragmentUniform(Types.texture, "uDirShadowMap")
+        this.sw.addFragmentContent(`
+            vec3 shadowMapCoord = vDirShadowMapCoord.xyz / vDirShadowMapCoord.w;
+            bool isInDirShadow = texture(uDirShadowMap, shadowMapCoord.xy).r < shadowMapCoord.z + shadow_bias
+        `)
+        this.sw.addFragmentColorModifier("color = vec4(isInShadow ? color.rgb*shadowReduce : color.rgb, color.a)")
+    }
+
+    createOmniShadowMap(modelPosition, model_lightToSurface){
+        this.sw.addVertexUniform(Types.mat4, "uMatOmniShadowMap")
+        this.sw.addVertexOut(Types.vec4, "vOmniShadowMapCoord", `uMatOmniShadowMap * ${modelPosition}`)
+        this.sw.addFragmentUniform(Types.cubemap, "uOmniShadowMap")
+        this.sw.addFragmentContent(`
+            float maxCoord = max( abs(${model_lightToSurface}.x), max(abs(${model_lightToSurface}.y), abs(${model_lightToSurface}.z)));
+            float magnitude = ((far_plane+near_plane)/(far_plane-near_plane)) + (1.0/maxCoord)*( (-2.0*far_plane*near_plane)/(far_plane-near_plane) );
+            bool isInShadow = texture(uOmniShadowMap, ${model_lightToSurface}).r < magnitude + shadow_bias
+        `)
+        this.sw.addFragmentColorModifier("color = vec4(isInShadow ? color.rgb*shadowReduce : color.rgb, color.a)")
+    }
+
+    createCubemap(){
+        this.sw.addFragmentUniform(Types.cubemap, "uCubemap")
+    }
+
+    setShaderParams(params){
+        this.sw.setParams(params)
+    }
+
     setVAO(vao){
         this.gl.bindVertexArray(vao)
     }
 
-    createDefaultMatrices(){
-        this.shaderWriter.addVertexUniform(Types.mat4, "uMatrixModel")
-        this.shaderWriter.addVertexUniform(Types.mat4, "uMatrixView")
-        this.shaderWriter.addVertexUniform(Types.nat4, "uMatrixProjection")
-
-        this.shaderWriter.addVertexPrePositionContent("vec4 modelPosition = uMatrixModel * aPosition")
-        this.shaderWriter.addVertexPrePositionContent("vec3 modelNormal   = mat3(uMatrixModel) * aNormal")
-
-        this.shaderWriter.setVertexGlPosition("uMatrixProjection * uMatrixView * modelPosition")
-        this.shaderWriter.addVertexOut(Types.vec3, "vNormal",       "mat3(transpose(inverse(uMatrixView))) * modelNormal")
-        this.shaderWriter.addVertexOut(Types.vec3, "vSurfaceToCam", "(uMatrixView * -modelPosition).xyz")
-    }
-    setDefaultMatrices(model, view, projection){
-        this.setMatrix4("uMatrixModel",      model)
-        this.setMatrix4("uMatrixView",       view)
-        this.setMatrix4("uMatrixProjection", projection)
-    }
-
-    createTexture(){
-
-    }
-    useTexture(){
-
-    }
-
-    createAmbientLight(){
-        
-    }
-    setAmbientLight(){
-
-    }
-
-    createDirectionalLight(){
-        this.shaderWriter.addVertexUniform(Types.vec3, "uLightDirDir")
-        this.shaderWriter.addVertexOut(Types.vec3, "v_view_surfaceToDirLight", "mat3(uMatrixView) * (-uLightDirDir)")
-    }
-    setDirectionalLight(lightDirDir){
-        this.setVec3("uLightDirDir", lightDirDir)
-    }
-
-    createPointLight(){
-        this.shaderWriter.addVertexUniform(Types.vec3, "uLightPointPosition")
-        this.shaderWriter.addVertexOut(Types.vec3, "v_view_surfaceToPointLight", "mat3(uMatrixView) * (uLightPointPosition - modelPosition.xyz)")
-        this.shaderWriter.addVertexOut(Types.vec3, "v_model_pointLightToSurface", "modelPosition.xyz - uLightPointPosition")
-    }
-    setPointLight(lightPointPosition){
-        this.setVec3("uLightPointPosition", lightPointPosition)
-    }
-
-    createConeLight(){
-        this.shaderWriter.addVertexUniform(Types.vec3, "uLightConePosition")
-        this.shaderWriter.addVertexUniform(Types.vec3, "uLightConeDir")
-        this.shaderWriter.addVertexOut(Types.vec3, "v_view_surfaceToConeLight", "mat3(uMatrixView) * (uLightConePosition  - modelPosition.xyz)")
-        this.shaderWriter.addVertexOut(Types.vec3, "v_view_coneLightDir", "mat3(uMatrixView) * uLightConeDirection")
-    }
-    setConeLight(lightConePosition, lightConeDir){
-        this.setVec3("uLightConePosition", lightConePosition)
-        this.setVec3("uLightConeDir", lightConeDir)
-    }
-
-    createDirectionalShadowMap(){
-        this.shaderWriter.addVertexUniform(Types.mat4, "uMatrixDirShadowMap")
-        this.shaderWriter.addVertexOut(Types.vec4, "vDirShadowMapCoord", "uMatrixDirShadowMap * modelPosition")
-        this.shaderWriter.addFragmentUniform(Types.texture, "uDirShadowMap")
-    }
-    setDirectionalShadowMap(matrixDirShadowMap){
-        this.setMatrix4("uMatrixDirShadowMap", matrixDirShadowMap)
-    }
-
-    createOmniShadowMap(){
-        this.shaderWriter.addVertexUniform(Types.mat4, "uMatrixOmniShadowMap")
-        this.shaderWriter.addVertexOut(Types.vec4, "vOmniShadowMapCoord", "uMatrixOmniShadowMap * modelPosition")
-        this.shaderWriter.addFragmentUniform(Types.cubemap, "uOmniShadowMap")
-    }
-    setOmniShadowMap(matrixOmniShadowMap){
-        this.setMatrix4("uMatrixOmniShadowMap", matrixOmniShadowMap)
-    }
-
-    createCubemap(){
-        this.shaderWriter.addFragmentUniform(Types.cubemap, "uCubemap")
-    }
-    useCubemap(){
-
-    }
-
-
     getVertex(){
-        return this.shaderWriter.writeVertex()
+        return this.sw.writeVertex()
     }
 
     getFragment(){
-        return this.shaderWriter.writeFragment()
+        return this.sw.writeFragment()
     }
 }
