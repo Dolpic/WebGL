@@ -7,18 +7,7 @@ export default class ProgramWrapper{
         this.program = this.gl.createProgram()
         this.shaders = new Shaders(this.gl, this.program)
 
-        let vao = this.shaders.createVAO()
-        let mat = this.shaders.createDefaultMatrices(vao.position, vao.normal)
-        this.shaders.createTexture(true, mat.view)
-        this.shaders.createAmbientLight()
-        this.shaders.createDirectionalLight(mat.view)
-        let pointLight = this.shaders.createPointLight(mat.view, mat.modelPosition, true, mat.surfaceToCam)
-        this.shaders.createConeLight(mat.view)
-        this.shaders.createDirectionalShadowMap(mat.modelPosition)
-        this.shaders.createOmniShadowMap(mat.modelPosition, pointLight.model_lightToSurface)
-        this.shaders.createCubemap()
-
-        console.log(this.shaders.getVertex() + this.shaders.getFragment())
+        this.createShaders()
 
         this.gl.attachShader(this.program, this._compileShader(this.gl.VERTEX_SHADER,   this.shaders.getVertex()))
         this.gl.attachShader(this.program, this._compileShader(this.gl.FRAGMENT_SHADER, this.shaders.getFragment()))
@@ -29,7 +18,25 @@ export default class ProgramWrapper{
             alert('Error initializing the program : ' + this.gl.getProgramInfoLog(this.program))
         }
     }
+
+    createShaders(){
+        let vao = this.shaders.createVAO()
+        let mat = this.shaders.createDefaultMatrices(vao.position, vao.normal)
+        //let cmap = this.shaders.createCubemap()
+        this.shaders.createTexture(false)//true, mat.view, mat.vNormal, mat.surfaceToCam, cmap.cubemap)
+        this.shaders.createAmbientLight()
+        this.shaders.createDirectionalLight(mat.view3)
+        let pointLight = this.shaders.createPointLight(mat.view3, mat.modelPosition, true, mat.surfaceToCam)
+        this.shaders.createConeLight(mat.view3)
+        //this.shaders.createDirectionalShadowMap(mat.modelPosition)
+        //this.shaders.createOmniShadowMap(mat.modelPosition, pointLight.model_lightToSurface)
+        console.log(this.shaders.getVertex() + this.shaders.getFragment())
+    }
     
+    setShaderParams(params){
+        this.shaders.setShaderParams(params)
+    }
+
     clearAndDraw(objects, mode=this.gl.TRIANGLES){
         this.gl.clear(this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT)
         this.draw(objects, mode)
@@ -39,7 +46,7 @@ export default class ProgramWrapper{
         for(const obj_name in objects){
             const obj = objects[obj_name]
             this.shaders.setVAO(obj.vao)
-            this.shaders.setParams({matrixModel:obj.modelMatrix})
+            this.shaders.setShaderParams({uMatModel:obj.modelMatrix})
             this.gl.drawArrays(mode, 0, obj.count)
         }
     }

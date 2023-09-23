@@ -13,18 +13,21 @@ export default class Scene{
         this.params     = params
 
         this.textures = textures
-        this.program = new Program(this.gl, shaders)
+        //this.program = new Program(this.gl, shaders)
 
         this.camera = new Camera(this.program, screenSize.width/screenSize.height)
         this.lights = new Lights(this.program)
         this.shadowMap   = null
         this.skybox      = null
 
-        this.wrapper = new ProgramWrapper(glContext)
+        this.program = new ProgramWrapper(glContext)
     }
 
     createTexture(image, location, with_mipmap){
-        return this.textures.create(image, location, this.program, with_mipmap)
+        const tex = this.textures.create(image, with_mipmap)
+        let param = {}
+        params[location] = tex
+        this.program.setShaderParams(param)
     }
 
     createTextures(textureList){
@@ -112,9 +115,9 @@ export default class Scene{
         const depthTexture = this.createDepthTexture(Utils.names.tex.shadowMap, size)
         this.shadowMap = {
             program : program,
-            texture : depthTexture,
+            texture : depthTexture.texture,
             camera  : new Camera(program, size),
-            framebuffer : new Framebuffer(this.gl, size, depthTexture),
+            framebuffer : new Framebuffer(this.gl, size, depthTexture.texture),
             lightMatrix : glMatrix.mat4.create()
         }
         this.shadowMap.camera.setOrthoProjection(-10, 10, -10, 10, 0.1, 200)
@@ -128,12 +131,12 @@ export default class Scene{
             texture : depthTexture,
             camera  : new Camera(program, size),
             framebuffers :  [
-                new Framebuffer(this.gl, size, depthTexture, this.gl.TEXTURE_CUBE_MAP_POSITIVE_X),
-                new Framebuffer(this.gl, size, depthTexture, this.gl.TEXTURE_CUBE_MAP_NEGATIVE_X),
-                new Framebuffer(this.gl, size, depthTexture, this.gl.TEXTURE_CUBE_MAP_POSITIVE_Y),
-                new Framebuffer(this.gl, size, depthTexture, this.gl.TEXTURE_CUBE_MAP_NEGATIVE_Y),
-                new Framebuffer(this.gl, size, depthTexture, this.gl.TEXTURE_CUBE_MAP_POSITIVE_Z),
-                new Framebuffer(this.gl, size, depthTexture, this.gl.TEXTURE_CUBE_MAP_NEGATIVE_Z),
+                new Framebuffer(this.gl, size, depthTexture.texture, this.gl.TEXTURE_CUBE_MAP_POSITIVE_X),
+                new Framebuffer(this.gl, size, depthTexture.texture, this.gl.TEXTURE_CUBE_MAP_NEGATIVE_X),
+                new Framebuffer(this.gl, size, depthTexture.texture, this.gl.TEXTURE_CUBE_MAP_POSITIVE_Y),
+                new Framebuffer(this.gl, size, depthTexture.texture, this.gl.TEXTURE_CUBE_MAP_NEGATIVE_Y),
+                new Framebuffer(this.gl, size, depthTexture.texture, this.gl.TEXTURE_CUBE_MAP_POSITIVE_Z),
+                new Framebuffer(this.gl, size, depthTexture.texture, this.gl.TEXTURE_CUBE_MAP_NEGATIVE_Z),
             ],
             lightMatrix : glMatrix.mat4.create()
         }
@@ -151,9 +154,11 @@ export default class Scene{
     }
 
     setMaterial(specular, reflection){
-        this.program.setVec3("specularColor", [1,1,1])
-        this.program.setFloat("specularPower", specular)
-        this.program.setFloat("reflectionFactor", reflection)
+        this.program.setShaderParams({
+            uLightPointSpecularColor : [1,1,1],
+            uLightPointSpecularPower : specular,
+            uReflectionFactor : reflection
+        })
     }
 
     setSkybox(shaders, folder){

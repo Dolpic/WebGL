@@ -21,8 +21,8 @@ export default class RenderingEngine{
         this.scene = new Scene(this.gl, screenSize, shaders, this.textures, this.params)
 
         if(this.params.with_shadow_map){
-            this.scene.createShadowMap(shadowShaders, this.params.shadow_map_size)
-            this.scene.createOmniShadowMap(shadowShaders, this.params.shadow_map_size)
+            //this.scene.createShadowMap(shadowShaders, this.params.shadow_map_size)
+            //this.scene.createOmniShadowMap(shadowShaders, this.params.shadow_map_size)
         }
     }
     
@@ -61,11 +61,11 @@ export default class RenderingEngine{
     }
     
     setSkybox(shaders, folder){
-        this.scene.setSkybox(shaders, folder)
+        //this.scene.setSkybox(shaders, folder)
     }
     
     setCubemap(folder){
-        this.scene.createCubemap(folder)
+        //this.scene.createCubemap(folder)
     }
     
     render() {

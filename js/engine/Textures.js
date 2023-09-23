@@ -19,28 +19,29 @@ export default class Textures{
         img.onload = () => callback(img)
     }
 
-    _new(location, program, type=this.gl.TEXTURE_2D){
+    _new(type=this.gl.TEXTURE_2D){
+      console.log("NEW")
+      console.trace()
         const texture = this.gl.createTexture()
         const id = "TEXTURE"+this.texture_counter
         this.gl.activeTexture(this.gl[id])
         this.gl.bindTexture(type, texture)
-        program.setTextureUnit(location, this.texture_counter)
         this.texture_counter++
-        return {texture:texture, id:id}
+        return {texture:texture, id:id, number:this.texture_counter}
     }
 
-    create(image, location_name, program, with_mipmap=true){
-        const tex = this._new(location_name, program)
+    create(image, with_mipmap=true){
+        const tex = this._new()
         this.loadImage(image, img => {
             this.gl.activeTexture(this.gl[tex.id])
             this.gl.texImage2D(this.gl.TEXTURE_2D, 0, this.gl.RGBA, this.gl.RGBA, this.gl.UNSIGNED_BYTE, img)
             if(with_mipmap) this.gl.generateMipmap(this.gl.TEXTURE_2D)
         })
-        return tex.texture
+        return tex
     }
 
-    createDepthTexture(location_name, program, size, type=this.gl.TEXTURE_2D){
-        const tex = this._new(location_name, program, type)
+    createDepthTexture(size, type=this.gl.TEXTURE_2D){
+        const tex = this._new(type)
         if(type == this.gl.TEXTURE_2D){
           this.gl.texImage2D(type, 0, this.gl.DEPTH_COMPONENT32F, size.width, size.height, 0, this.gl.DEPTH_COMPONENT, this.gl.FLOAT, null)
         }else{
@@ -50,11 +51,11 @@ export default class Textures{
         }
         this.gl.texParameteri(type, this.gl.TEXTURE_MAG_FILTER, this.gl.NEAREST)
         this.gl.texParameteri(type, this.gl.TEXTURE_MIN_FILTER, this.gl.NEAREST)
-        return tex.texture
+        return tex
     }
 
-    createCubemap(folder, program, size=512){
-        const tex = this._new("uCubemap", program, this.gl.TEXTURE_CUBE_MAP)
+    createCubemap(folder, size=512){
+        const tex = this._new(this.gl.TEXTURE_CUBE_MAP)
         let faces = [
           [this.cubemapFaces[0], "px.png"],
           [this.cubemapFaces[1], "nx.png"],
@@ -76,6 +77,6 @@ export default class Textures{
             })
           })
         }
-       
+       return tex
     }
 }

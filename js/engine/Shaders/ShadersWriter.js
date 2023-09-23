@@ -3,6 +3,7 @@ export let Types = {
     vec3:    "vec3",
     vec2:    "vec2",
     mat4:    "mat4",
+    mat3:    "mat3",
     float:   "float",
     texture: "sampler2D",
     cubemap: "samplerCube"
@@ -12,14 +13,14 @@ export default class ShadersWriter{
     constructor(glContext, program){
         this.vertex = {
             ins:           {},
-            uniforms:      [],
-            outs :         [],
+            uniforms:      {},
+            outs :         {},
             pre_position:  [],
             gl_Position :  []
         }
 
         this.fragment = {
-            uniforms:        [],
+            uniforms:        {},
             content:         [],
             color_base:      [],
             color_modifiers: []
@@ -28,30 +29,36 @@ export default class ShadersWriter{
         this.gl = glContext
         this.program = program
         this.endl = ";\n"
+        this.endlTab = this.endl+"    "
     }
 
-    setParams(params){
+    setUniforms(params){
         this.gl.useProgram(this.program)
-        for(entry in params){
-            switch(this.vertex.ins[entry]){
-                case "vec3":
+        let uniforms = {...this.vertex.uniforms, ...this.fragment.uniforms}
+        for(const entry in params){
+            if(uniforms[entry] === undefined){
+                console.warn("Unknown parameter : "+entry)
+                continue
+            }
+            switch(uniforms[entry].type){
+                case Types.vec3:
                     this.gl.uniform3fv(this.gl.getUniformLocation(this.program, entry), params[entry])
-                    break
-                case "float":
+                    continue
+                case Types.float:
                     this.gl.uniform1f(this.gl.getUniformLocation(this.program, entry), params[entry])
-                    break
-                case "mat4":
+                    continue
+                case Types.mat4:
                     this.gl.uniformMatrix4fv(this.gl.getUniformLocation(this.program, entry), false, params[entry])
-                    break
+                    continue
+                case Types.texture:
+                    this.gl.activeTexture(this.gl[params[entry].id])
+                    this.gl.bindTexture(params[entry].type, params[entry].number)
+                    this.gl.uniform1i(this.gl.getUniformLocation(this.program, entry), params[entry].number)
+                    continue
                 default:
-                    console.log("Parameter of unknown type : "+this.vertex.ins[entry])
+                    console.warn("Parameter of unknown type : "+uniforms[entry])
             }
         }
-    }
-
-    setTextureUnit(name, value){
-        this.gl.useProgram(this.program)
-        this.gl.uniform1i(this.gl.getUniformLocation(this.program, name), value)
     }
 
     addVertexPrePositionContent(expression){
@@ -63,19 +70,19 @@ export default class ShadersWriter{
     }
 
     addVertexAttribute(type, name){
-        this.vertex.ins[name] = type
+        this.vertex.ins[name] = {name:name, type:type}
     }
 
     addVertexUniform(type, name){
-        this.vertex.uniforms.push({type:type, name:name})
+        this.vertex.uniforms[name] = {name:name, type:type}
     }
 
     addVertexOut(type, name, expression){
-        this.vertex.outs.push({type:type, name:name, expr:expression})
+        this.vertex.outs[name] = {name:name, type:type, expr:expression}
     }
 
     addFragmentUniform(type, name){
-        this.fragment.uniforms.push({type:type, name:name})
+        this.fragment.uniforms[name] = {name:name, type:type}
     }
 
     addFragmentContent(content){
@@ -92,13 +99,13 @@ export default class ShadersWriter{
 
     writeVertex(){
         return `#version 300 es
-            ${Object.entries(this.vertex.ins).map(x => "in "+x[1]+" "+x[0]).join(this.endl)+this.endl}
+            ${this._createVariableList("in",      this.vertex.ins)}
             ${this._createVariableList("uniform", this.vertex.uniforms)}
             ${this._createVariableList("out",     this.vertex.outs)}
             void main() {
-                ${this.vertex.pre_position.join(this.endl+"    ")+this.endl}
+                ${this.vertex.pre_position.join(this.endlTab)+this.endl}
                 gl_Position = ${this.vertex.gl_Position+this.endl}
-                ${this.vertex.outs.map(x => x.name+" = "+x.expr).join(this.endl+"    ")}
+                ${Object.values(this.vertex.outs).map(x => x.name+" = "+x.expr).join(this.endlTab)+this.endl}
             }
         `.replace(/            /g,"")
     }
@@ -122,15 +129,16 @@ export default class ShadersWriter{
             }
 
             void main() {
-                ${this.fragment.content.join(this.endl+"    ")}
+                ${this.fragment.content.join(this.endlTab)+this.endl}
                 vec3 lightingFactor = uLightAmbientColor + directionalLight + pointLight + coneLight;
                 color = vec4( (vColor.rgb + texture(uTexture, vTextureCoord).rgb) * lightingFactor, vColor.a);
-                ${this.fragment.color_modifiers.join(this.endl+"    ")}
+
+                ${this.fragment.color_modifiers.join(this.endlTab)+this.endl}
             }
         `.replace(/            /g,"")
     }
 
     _createVariableList(type, list){
-        return list.map(x => type+" "+x.type+" "+x.name).join(this.endl)+this.endl
+        return Object.values(list).map(x => type+" "+x.type+" "+x.name).join(this.endl)+this.endl
     }
 }
