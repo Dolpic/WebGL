@@ -143,7 +143,7 @@
                 ["Dragon", "dragon/dragon_simple2.obj"]
             ]
 
-            engine = new Engine(getById("canvas"), Shaders.blinnPhongShadowmap, Shaders.shadowMap, params)
+            engine = new Engine(getById("canvas"), params)
             engine.addObject(Shapes.Plane, "Ground")
             //engine.addObject(Shapes.Plane, "WallX", [-10,0,10], [0,90,0])
             //engine.addObject(Shapes.Plane, "WallY", [0,-10,10], [90,0,0])

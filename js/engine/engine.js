@@ -3,7 +3,7 @@ import Textures from "./Textures.js"
 import Scene from "./Scene/Scene.js"
 
 export default class RenderingEngine{
-    constructor(canvas, shaders, shadowShaders, params={}){
+    constructor(canvas, params={}){
         if (! (this.gl = canvas.getContext("webgl2")) ){
             alert("WebGL2 is not supported on this browser")
         }
@@ -18,7 +18,7 @@ export default class RenderingEngine{
         this.textures = new Textures(this.gl)
         
         const screenSize = {width:this.gl.canvas.clientWidth, height:this.gl.canvas.clientHeight}
-        this.scene = new Scene(this.gl, screenSize, shaders, this.textures, this.params)
+        this.scene = new Scene(this.gl, screenSize, this.textures, this.params)
 
         if(this.params.with_shadow_map){
             //this.scene.createShadowMap(shadowShaders, this.params.shadow_map_size)
@@ -44,7 +44,7 @@ export default class RenderingEngine{
     }
     
     getViewProjection(){
-        return this.scene.camera.getMatrices()
+        return this.scene.camera.getState()
     }
     
     setObjectTransform(name, position=[0,0,0], rotation=[0,0,0], scale=[1,1,1]){

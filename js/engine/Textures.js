@@ -20,8 +20,6 @@ export default class Textures{
     }
 
     _new(type=this.gl.TEXTURE_2D){
-      console.log("NEW")
-      console.trace()
         const texture = this.gl.createTexture()
         const id = "TEXTURE"+this.texture_counter
         this.gl.activeTexture(this.gl[id])

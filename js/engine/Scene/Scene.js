@@ -1,33 +1,54 @@
 import "../gl-matrix.js"
 import * as Utils from "../utils.js"
-import Program from "../Program.js"
+import Program from "../old/Program.js"
 import Camera from "./Camera.js"
 import Lights from "./Lights.js"
 import Framebuffer from "./Framebuffer.js"
 import ProgramWrapper from "../Shaders/ProgramWrapper.js"
 
 export default class Scene{
-    constructor(glContext, screenSize, shaders, textures, params){
+    constructor(glContext, screenSize, textures, params){
         this.gl         = glContext
         this.screenSize = screenSize
         this.params     = params
 
         this.textures = textures
-        //this.program = new Program(this.gl, shaders)
+        this.programs = new ProgramWrapper(glContext)
+        this.programs.createProgram()
+        
+        this.camera = new Camera( state => this.programs.setShaderParams("default", {
+            uMatView:       state.view,
+            uMatProjection: state.projection
+        }))
 
-        this.camera = new Camera(this.program, screenSize.width/screenSize.height)
-        this.lights = new Lights(this.program)
+        this.lights = new Lights( state => this.programs.setShaderParams("default", {
+            uLightAmbientColor:  state.ambientColor,
+            uLightDirColor:      state.directionalColor,
+            uLightDirDir:        state.directionalDir,
+            uLightPointColor:    state.pointColor,
+            uLightPointPosition: state.pointPosition,
+            uLightConeColor:     state.coneColor,
+            uLightConePosition:  state.conePosition,
+            uLightConeDir:       state.coneDir
+        }))
+
         this.shadowMap   = null
         this.skybox      = null
-
-        this.program = new ProgramWrapper(glContext)
     }
 
     createTexture(image, location, with_mipmap){
         const tex = this.textures.create(image, with_mipmap)
         let param = {}
         params[location] = tex
-        this.program.setShaderParams(param)
+        this.programs.setShaderParams("default", param)
+    }
+
+    setMaterial(specular, reflection){
+        this.programs.setShaderParams("default", {
+            uLightPointSpecularColor : [1,1,1],
+            uLightPointSpecularPower : specular,
+            uReflectionFactor : reflection
+        })
     }
 
     createTextures(textureList){
@@ -36,11 +57,11 @@ export default class Scene{
     }
 
     createDepthTexture(location, size, type=this.gl.TEXTURE_2D){
-        return this.textures.createDepthTexture(location, this.program, size, type)
+        return this.textures.createDepthTexture(location, this.programs, size, type)
     }
 
     createCubemap(folder){
-        this.textures.createCubemap(folder, this.program)
+        this.textures.createCubemap(folder, this.programs)
     }
 
     useDefaultFramebuffer(){
@@ -49,8 +70,8 @@ export default class Scene{
     }
 
     useShadowMap(){
-        const cone = this.lights.getCone()
-        this.shadowMap.camera.setCamera(cone.position, cone.direction)
+        const state = this.lights.getState()
+        this.shadowMap.camera.setCamera(state.conePosition, state.coneDirection)
         if(this.params.show_shadow_map){
             this.useDefaultFramebuffer()
         }else{
@@ -58,56 +79,38 @@ export default class Scene{
         }
 
         Utils.transformMatrix(this.shadowMap.lightMatrix, [0.5,0.5,0.5], [0,0,0], [0.5,0.5,0.5])
-        const camMatrices = this.shadowMap.camera.getMatrices()
+        const camMatrices = this.shadowMap.camera.getState()
         glMatrix.mat4.multiply(this.shadowMap.lightMatrix, this.shadowMap.lightMatrix, camMatrices.projection)
         glMatrix.mat4.multiply(this.shadowMap.lightMatrix, this.shadowMap.lightMatrix, camMatrices.view)
-        this.program.setMatrix4(Utils.names.mat.shadowMap, this.shadowMap.lightMatrix)
+        this.programs.setMatrix4(Utils.names.mat.shadowMap, this.shadowMap.lightMatrix)
     }
 
     useOmniShadowMap(objects){
-        const point = this.lights.getPoint()
+        const point = this.lights.getState().pointPosition
 
         const cameraRotations = [
-            [0, -90, 180],  // OK
-            [0, 90, 180],   // OK
+            [0, -90, 180],  
+            [0, 90, 180],   
 
-            [90, 0, 0], // OK
-            [90, 180, 180],  // Could be improved
+            [90, 0, 0], 
+            [90, 180, 180],
 
             [180, 0, 0], 
-            [0, 0, 180], // OK
+            [0, 0, 180], 
         ]
 
-        /*
-            [0,   0,   0],
-            [180, 0,   0],
-            [0,   0,   90],
-            [0,   0,   270],
-            [0,   90,  0],
-            [0,   270, 0]
-            ---
-            [270, 0, 90],
-            [270, 0, 270],
-            [270, 0, 0],
-            [270, 0, 180],
-            [0,   0, 0],
-            [180, 0, 0]
-        */
 
         for(let i=0; i<6; i++){
             this.omniShadowMap.camera.setCamera(point.position, cameraRotations[i])
             this.omniShadowMap.framebuffers[i].use() 
             this.omniShadowMap.program.clearAndDraw(objects)
         }
-        /*this.omniShadowMap.camera.setCamera(point.position, cameraRotations[1])
-        this.useDefaultFramebuffer()
-        this.omniShadowMap.program.clearAndDraw(objects)*/
 
         Utils.transformMatrix(this.omniShadowMap.lightMatrix, [0.5,0.5,0.5], [0,0,0], [0.5,0.5,0.5])
-        const camMatrices = this.omniShadowMap.camera.getMatrices()
+        const camMatrices = this.omniShadowMap.camera.getState()
         glMatrix.mat4.multiply(this.omniShadowMap.lightMatrix, this.omniShadowMap.lightMatrix, camMatrices.projection)
         glMatrix.mat4.multiply(this.omniShadowMap.lightMatrix, this.omniShadowMap.lightMatrix, camMatrices.view)
-        this.program.setMatrix4(Utils.names.mat.omniShadowMap, this.omniShadowMap.lightMatrix)
+        this.programs.setMatrix4(Utils.names.mat.omniShadowMap, this.omniShadowMap.lightMatrix)
     }
 
     createShadowMap(shaders, size){
@@ -153,14 +156,6 @@ export default class Scene{
         this.useOmniShadowMap(objects)
     }
 
-    setMaterial(specular, reflection){
-        this.program.setShaderParams({
-            uLightPointSpecularColor : [1,1,1],
-            uLightPointSpecularPower : specular,
-            uReflectionFactor : reflection
-        })
-    }
-
     setSkybox(shaders, folder){
         this.skybox = {
             program : new Program(this.gl, shaders),
@@ -191,7 +186,7 @@ export default class Scene{
 
         if(!this.params.show_shadow_map){
             this.useDefaultFramebuffer()
-            this.program.clearAndDraw(objects)
+            this.programs.clearAndDraw("default", objects)
             if(this.skybox != null){
                 this.renderSkybox()
             }

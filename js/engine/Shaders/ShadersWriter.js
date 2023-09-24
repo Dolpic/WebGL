@@ -40,6 +40,9 @@ export default class ShadersWriter{
                 console.warn("Unknown parameter : "+entry)
                 continue
             }
+            if(params[entry] === undefined){
+                continue
+            }
             switch(uniforms[entry].type){
                 case Types.vec3:
                     this.gl.uniform3fv(this.gl.getUniformLocation(this.program, entry), params[entry])

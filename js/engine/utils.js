@@ -16,35 +16,3 @@ export function inverseMatrix(matrix){
 export function createMatrix(){
     return glMatrix.mat4.create()
 }
-
-export const names = {
-    attrs: {
-        position: "aPosition",
-        color:    "aColor",
-        texCoord: "aTexCoord",
-        normal:   "aNormal",
-    },
-    lights:{
-        ambientColor:  "uLightAmbientColor",
-        pointPos:      "uLightPointPosition",
-        pointColor:    "uLightPointColor",
-        dirDirection:  "uLightDirectionalDirection",
-        dirColor:      "uLightDirectionalColor",
-        conePosition:  "uLightConePosition",
-        coneDirection: "uLightConeDirection",
-        coneColor:     "uLightConeColor"
-    },
-    mat:{
-        model:      "uMatrixModel",
-        view:       "uMatrixView",
-        projection: "uMatrixProjection",
-        shadowMap:  "uMatrixShadowMap",
-        omniShadowMap: "uMatrixOmniShadowMap"
-    },
-    tex:{
-        texture:        "uTexture",
-        shadowMap:      "uShadowMap",
-        omniShadowMap : "uOmniShadowMap",
-        cubemap:        "uCubemap"
-    }
-}
