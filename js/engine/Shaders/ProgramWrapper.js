@@ -4,6 +4,7 @@ export default class ProgramWrapper{
     constructor(glContext){
         this.gl = glContext
         this.programs = {}
+        this.createProgram("default", "default")
     }
 
     createProgram(name="default", shaders_type="default"){
@@ -47,14 +48,19 @@ export default class ProgramWrapper{
         //shaders.createOmniShadowMap(mat.modelPosition, pointLight.model_lightToSurface)
         console.log(shaders.getVertex() + shaders.getFragment())
     }
+
+    generateSkyBox(shaders){
+        let vao = shaders.createVAO()
+        
+    }
     
-    setShaderParams(program_name, params){
+    setShaderParams(params, program_name="default"){
         this.programs[program_name].shaders.setShaderParams(params)
     }
 
-    clearAndDraw(program_name, objects, mode=this.gl.TRIANGLES){
+    clearAndDraw(objects, program_name="default", mode=this.gl.TRIANGLES){
         this.gl.clear(this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT)
-        this._draw(program_name, objects, mode)
+        this._draw(objects, program_name, mode)
     }
 
     /*printDebugInfos(){
@@ -71,12 +77,13 @@ export default class ProgramWrapper{
         console.log(this.gl.getAttachedShaders(this.program))
     }*/
 
-    _draw(program_name, objects, mode=this.gl.TRIANGLES){
-        this.gl.useProgram(this.programs[program_name].program)  
+    _draw(objects, program_name, mode){
+        let prog = this.programs[program_name]
+        this.gl.useProgram(prog.program)  
         for(const obj_name in objects){
             const obj = objects[obj_name]
-            this.programs[program_name].shaders.setVAO(obj.vao)
-            this.programs[program_name].shaders.setShaderParams({uMatModel:obj.modelMatrix})
+            prog.shaders.setVAO(obj.vao)
+            prog.shaders.setShaderParams({uMatModel:obj.modelMatrix})
             this.gl.drawArrays(mode, 0, obj.count)
         }
     }

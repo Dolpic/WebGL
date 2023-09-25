@@ -22,7 +22,7 @@ export default class ShadersWriter{
         this.fragment = {
             uniforms:        {},
             content:         [],
-            color_base:      [],
+            lighting_factor: [],
             color_modifiers: []
         }
 
@@ -55,7 +55,7 @@ export default class ShadersWriter{
                     continue
                 case Types.texture:
                     this.gl.activeTexture(this.gl[params[entry].id])
-                    this.gl.bindTexture(params[entry].type, params[entry].number)
+                    this.gl.bindTexture(params[entry].type, params[entry].texture)
                     this.gl.uniform1i(this.gl.getUniformLocation(this.program, entry), params[entry].number)
                     continue
                 default:
@@ -92,12 +92,12 @@ export default class ShadersWriter{
         this.fragment.content.push(content)
     }
 
-    addFragmentColorBase(content){
-        this.fragment.color_base.push(content)
-    }
-
     addFragmentColorModifier(content){
         this.fragment.color_modifiers.push(content)
+    }
+
+    addFragmentLightingFactor(factor){
+        this.fragment.lighting_factor.push(factor)
     }
 
     writeVertex(){
@@ -133,9 +133,8 @@ export default class ShadersWriter{
 
             void main() {
                 ${this.fragment.content.join(this.endlTab)+this.endl}
-                vec3 lightingFactor = uLightAmbientColor + directionalLight + pointLight + coneLight;
-                color = vec4( (vColor.rgb + texture(uTexture, vTextureCoord).rgb) * lightingFactor, vColor.a);
-
+                vec3 lightingFactor = ${this.fragment.lighting_factor.join(" + ")+this.endl}
+                color = vec4(1.0, 1.0, 1.0, 1.0) * vec4(lightingFactor, 1.0);
                 ${this.fragment.color_modifiers.join(this.endlTab)+this.endl}
             }
         `.replace(/            /g,"")

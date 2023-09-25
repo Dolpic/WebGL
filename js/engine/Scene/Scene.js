@@ -14,14 +14,13 @@ export default class Scene{
 
         this.textures = textures
         this.programs = new ProgramWrapper(glContext)
-        this.programs.createProgram()
         
-        this.camera = new Camera( state => this.programs.setShaderParams("default", {
+        this.camera = new Camera(state => this.programs.setShaderParams({
             uMatView:       state.view,
             uMatProjection: state.projection
-        }))
+        }), screenSize.width/screenSize.height)
 
-        this.lights = new Lights( state => this.programs.setShaderParams("default", {
+        this.lights = new Lights(state => this.programs.setShaderParams({
             uLightAmbientColor:  state.ambientColor,
             uLightDirColor:      state.directionalColor,
             uLightDirDir:        state.directionalDir,
@@ -38,13 +37,13 @@ export default class Scene{
 
     createTexture(image, location, with_mipmap){
         const tex = this.textures.create(image, with_mipmap)
-        let param = {}
+        let params = {}
         params[location] = tex
-        this.programs.setShaderParams("default", param)
+        this.programs.setShaderParams(params)
     }
 
     setMaterial(specular, reflection){
-        this.programs.setShaderParams("default", {
+        this.programs.setShaderParams({
             uLightPointSpecularColor : [1,1,1],
             uLightPointSpecularPower : specular,
             uReflectionFactor : reflection
@@ -186,7 +185,7 @@ export default class Scene{
 
         if(!this.params.show_shadow_map){
             this.useDefaultFramebuffer()
-            this.programs.clearAndDraw("default", objects)
+            this.programs.clearAndDraw(objects)
             if(this.skybox != null){
                 this.renderSkybox()
             }

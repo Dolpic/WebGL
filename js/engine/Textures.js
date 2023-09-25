@@ -25,7 +25,7 @@ export default class Textures{
         this.gl.activeTexture(this.gl[id])
         this.gl.bindTexture(type, texture)
         this.texture_counter++
-        return {texture:texture, id:id, number:this.texture_counter}
+        return {texture:texture, id:id, number:this.texture_counter-1, type:type}
     }
 
     create(image, with_mipmap=true){

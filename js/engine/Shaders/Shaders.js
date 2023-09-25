@@ -13,6 +13,7 @@ export default class Shaders{
         this.sw.addVertexAttribute(Types.vec2, "iTexCoord")
         this.sw.addVertexOut(Types.vec4, "vColor", "iColor")
         this.sw.addVertexOut(Types.vec2, "vTextureCoord", "iTexCoord")
+        this.sw.addFragmentColorModifier("color *= vColor")
         return {position:"iPosition", color:"iColor", normal:"iNormal", texCoord: "iTexCoord"}
     }
 
@@ -47,6 +48,7 @@ export default class Shaders{
 
     createTexture(withReflection=false, matView=null, vNormal=null, surfaceToCam=null, cubemap=null){
         this.sw.addFragmentUniform(Types.texture, "uTexture")
+        this.sw.addFragmentColorModifier("color += texture(uTexture, vTextureCoord)")
         if(withReflection){
             this.sw.addFragmentUniform(Types.float, "uReflectionFactor")
             this.sw.addVertexOut(Types.mat3, "uViewInverse3", `mat3(inverse(${matView}))`)
@@ -57,6 +59,7 @@ export default class Shaders{
 
     createAmbientLight(){
         this.sw.addFragmentUniform(Types.vec3, "uLightAmbientColor")
+        this.sw.addFragmentLightingFactor("uLightAmbientColor")
     }
 
     createDirectionalLight(matView3){
@@ -64,6 +67,7 @@ export default class Shaders{
         this.sw.addVertexOut(Types.vec3, "v_view_surfaceToDirLight", `normalize(${matView3} * (-uLightDirDir))`)
         this.sw.addFragmentUniform(Types.vec3, "uLightDirColor")
         this.sw.addFragmentContent(`vec3 directionalLight = uLightDirColor * cappedAngleWithNormal(v_view_surfaceToDirLight)`)
+        this.sw.addFragmentLightingFactor("directionalLight")
     }
 
     createPointLight(matView3, modelPosition, withSpecular=false, surfaceToCam=null){
@@ -71,12 +75,13 @@ export default class Shaders{
         this.sw.addVertexOut(Types.vec3, "v_view_surfaceToPointLight", `normalize(${matView3} * (uLightPointPosition - ${modelPosition}.xyz))`)
         this.sw.addVertexOut(Types.vec3, "v_model_pointLightToSurface", `${modelPosition}.xyz - uLightPointPosition`)
         this.sw.addFragmentUniform(Types.vec3, "uLightPointColor")
+        this.sw.addFragmentContent(`vec3 pointLight = uLightPointColor * cappedAngleWithNormal(v_view_surfaceToPointLight)`)
+        this.sw.addFragmentLightingFactor("pointLight")
         if(withSpecular){
             this.sw.addFragmentUniform(Types.float, "uLightPointSpecularPower")
             this.sw.addFragmentUniform(Types.vec3, "uLightPointSpecularColor")
             this.sw.addFragmentContent(`float specular = cappedAngleWithNormal(normalize(v_view_surfaceToPointLight+${surfaceToCam}))`)
             this.sw.addFragmentColorModifier("color.rgb += pow(specular, uLightPointSpecularPower*100.0) * uLightPointSpecularColor")
-            this.sw.addFragmentContent(`vec3 pointLight = uLightPointColor * cappedAngleWithNormal(v_view_surfaceToPointLight)`)
         }
         return {model_lightToSurface:"v_model_pointLightToSurface"}
     }
@@ -90,6 +95,7 @@ export default class Shaders{
         this.sw.addFragmentUniform(Types.vec3, "uLightConeColor")
         this.sw.addFragmentContent(`float coneLightEffect = smoothstep(coneLighEffectSmoothLow, coneLighEffectSmoothHigh, dot(v_view_surfaceToConeLight, vLightConeDir))`)
         this.sw.addFragmentContent(`vec3 coneLight = uLightConeColor * cappedAngleWithNormal(v_view_surfaceToConeLight) * coneLightEffect`)
+        this.sw.addFragmentLightingFactor("coneLight")
     }
 
     createDirectionalShadowMap(modelPosition){
@@ -109,6 +115,20 @@ export default class Shaders{
         this.sw.addFragmentContent(`float magnitude = ((far_plane+near_plane)/(far_plane-near_plane)) + (1.0/maxCoord)*( (-2.0*far_plane*near_plane)/(far_plane-near_plane) )`)
         this.sw.addFragmentContent(`bool isInOmniShadow = texture(uOmniShadowMap, ${model_lightToSurface}).r < magnitude + shadow_bias`)
         this.sw.addFragmentColorModifier("color = vec4(isInOmniShadow ? color.rgb*shadowReduce : color.rgb, color.a)")
+    }
+
+    createSkyBox(){
+        this.sw.addVertexAttribute(Types.vec4, "iPosition")
+        this.sw.setVertexGlPosition("aPosition")
+        this.sw.addVertexOut(Types.vec4, "position", "aPosition")
+        this.sw.addFragmentUniform(Types.mat4, "uViewProjection")
+        this.sw.addFragmentUniform(Types.cubemap, "uCubemap")
+        this.sw.addFragmentContent("vec4 pos = inverse(uViewProjection)*position")
+        this.sw.addFragmentColorModifier("color = texture(uCubemap, pos.xzy/pos.w)")
+    }
+
+    createDebugFullRed(){
+        this.sw.addFragmentColorModifier("color = vec4(1.0, 0.0, 0.0, 1.0)")
     }
 
     setShaderParams(params){
