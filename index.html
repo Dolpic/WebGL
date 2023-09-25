@@ -5,10 +5,8 @@
         <script src="js/utils.js"></script>
         <script src="js/ModelHelper.js"></script>
         <script type="module">
-            import Shaders from "./shaders/module.js"
             import Engine  from "./js/engine/engine.js"
             import Shapes  from "./ressources/shapes/module.js"
-            document.Shaders = Shaders
             document.Engine  = Engine
             document.Shapes  = Shapes
         </script>
@@ -157,8 +155,7 @@
 
             ModelHelper.loadWavefronts(wavefronts, engine).then( () => generateObjectsTab(engine.objects.list))
 
-            engine.setCubemap("ressources/cubemaps/"+skybox)
-            engine.setSkybox(Shaders.skybox, "ressources/cubemaps/"+skybox)
+            engine.setSkybox("ressources/cubemaps/"+skybox)
 
             generateViewTab(engine)
             generateMaterialTab()
@@ -182,7 +179,6 @@
             engine.scene.lights.setDirectional(getDirLightColor(), getDirLightPos())
             engine.scene.lights.setPoint(getPointLightColor(), getPointLightPos())
             engine.scene.lights.setCone(getConeLightColor(), getConeLightPos(), getConeLightDir())
-            //engine.setObjectTransform("Light_marker", getConeLightPos())
 
             engine.render()
             needRestart ? start() : requestAnimationFrame(render)

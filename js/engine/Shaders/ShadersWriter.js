@@ -23,7 +23,8 @@ export default class ShadersWriter{
             uniforms:        {},
             content:         [],
             lighting_factor: [],
-            color_modifiers: []
+            color_modifiers: [],
+            functions:       []
         }
 
         this.gl = glContext
@@ -54,6 +55,7 @@ export default class ShadersWriter{
                     this.gl.uniformMatrix4fv(this.gl.getUniformLocation(this.program, entry), false, params[entry])
                     continue
                 case Types.texture:
+                case Types.cubemap:
                     this.gl.activeTexture(this.gl[params[entry].id])
                     this.gl.bindTexture(params[entry].type, params[entry].texture)
                     this.gl.uniform1i(this.gl.getUniformLocation(this.program, entry), params[entry].number)
@@ -100,13 +102,17 @@ export default class ShadersWriter{
         this.fragment.lighting_factor.push(factor)
     }
 
+    addFragmentFunction(content){
+        this.fragment.functions.push(content)
+    }
+
     writeVertex(){
         return `#version 300 es
             ${this._createVariableList("in",      this.vertex.ins)}
             ${this._createVariableList("uniform", this.vertex.uniforms)}
             ${this._createVariableList("out",     this.vertex.outs)}
             void main() {
-                ${this.vertex.pre_position.join(this.endlTab)+this.endl}
+                ${this.vertex.pre_position.join(this.endlTab)+ (this.vertex.pre_position.length!=0?this.endl:"")}
                 gl_Position = ${this.vertex.gl_Position+this.endl}
                 ${Object.values(this.vertex.outs).map(x => x.name+" = "+x.expr).join(this.endlTab)+this.endl}
             }
@@ -114,6 +120,15 @@ export default class ShadersWriter{
     }
 
     writeFragment(){
+        let lighting_factor
+        if(this.fragment.lighting_factor!=0){
+            lighting_factor = `
+                vec3 lightingFactor =${this.fragment.lighting_factor.join(" + ")+this.endl}
+                color = vec4(1.0, 1.0, 1.0, 1.0) * vec4(lightingFactor, 1.0);
+            `
+        }else{
+            lighting_factor = ""
+        }
         return `#version 300 es
             precision highp float;
             ${this._createVariableList("in lowp", this.vertex.outs)}
@@ -126,21 +141,20 @@ export default class ShadersWriter{
             const float shadowReduce = 0.3;
             const float far_plane = 200.0;
             const float near_plane = 0.1;
-
-            float cappedAngleWithNormal(vec3 vector) {
-                return max(dot(normalize(vNormal), vector), 0.0);
-            }
-
+            ${this.fragment.functions.join("\r")}
             void main() {
                 ${this.fragment.content.join(this.endlTab)+this.endl}
-                vec3 lightingFactor = ${this.fragment.lighting_factor.join(" + ")+this.endl}
-                color = vec4(1.0, 1.0, 1.0, 1.0) * vec4(lightingFactor, 1.0);
+                ${lighting_factor}
                 ${this.fragment.color_modifiers.join(this.endlTab)+this.endl}
             }
         `.replace(/            /g,"")
     }
 
     _createVariableList(type, list){
-        return Object.values(list).map(x => type+" "+x.type+" "+x.name).join(this.endl)+this.endl
+        let values = Object.values(list)
+        if(values.length == 0){
+            return ""
+        }
+        return values.map(x => type+" "+x.type+" "+x.name).join(this.endl)+this.endl
     }
 }

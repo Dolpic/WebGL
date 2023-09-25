@@ -18,7 +18,8 @@ export default class Lights{
             pointPosition:    this.pointPos,
             coneColor:        this.coneColor,
             conePosition:     this.conePosition,
-            coneDir:          this.coneDirection
+            coneDir:          this.coneDirection,
+            coneDirDegree:    this.coneDirectionDegree
         }
     }
 

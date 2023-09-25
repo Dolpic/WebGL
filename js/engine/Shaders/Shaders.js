@@ -29,6 +29,11 @@ export default class Shaders{
         this.sw.setVertexGlPosition("uMatProjection * uMatView * modelPosition")
         this.sw.addVertexOut(Types.vec3, "vNormal", "mat3(transpose(inverse(uMatView))) * modelNormal")
         this.sw.addVertexOut(Types.vec3, "v_view_SurfaceToCam", "normalize((uMatView * -modelPosition).xyz)")
+        this.sw.addFragmentFunction(`
+            float cappedAngleWithNormal(vec3 vector) {
+                return max(dot(normalize(vNormal), vector), 0.0);
+            }
+        `)
         return {
             model:"uMatModel", 
             view:"uMatView", 
@@ -41,20 +46,17 @@ export default class Shaders{
         }
     }
 
-    createCubemap(){
-        this.sw.addFragmentUniform(Types.cubemap, "uCubemap")
-        return {cubemap:"uCubemap"}
-    }
-
-    createTexture(withReflection=false, matView=null, vNormal=null, surfaceToCam=null, cubemap=null){
+    createTexture(){
         this.sw.addFragmentUniform(Types.texture, "uTexture")
         this.sw.addFragmentColorModifier("color += texture(uTexture, vTextureCoord)")
-        if(withReflection){
-            this.sw.addFragmentUniform(Types.float, "uReflectionFactor")
-            this.sw.addVertexOut(Types.mat3, "uViewInverse3", `mat3(inverse(${matView}))`)
-            this.sw.addFragmentContent(`vec3 reflectionDir = normalize(vec4(reflect(  uViewInverse3*-${surfaceToCam}, normalize(uViewInverse3*${vNormal}) ), 1.0)).xzy`)
-            this.sw.addFragmentColorModifier(`color = (1.0-uReflectionFactor)*color + uReflectionFactor*texture(${cubemap}, reflectionDir)`)
-        }
+    }
+
+    createReflection(matView, vNormal, surfaceToCam){
+        this.sw.addFragmentUniform(Types.cubemap, "uReflectionCubemap")
+        this.sw.addFragmentUniform(Types.float, "uReflectionFactor")
+        this.sw.addVertexOut(Types.mat3, "uViewInverse3", `mat3(inverse(${matView}))`)
+        this.sw.addFragmentContent(`vec3 reflectionDir = normalize(vec4(reflect(  uViewInverse3*-${surfaceToCam}, normalize(uViewInverse3*${vNormal}) ), 1.0)).xzy`)
+        this.sw.addFragmentColorModifier(`color = (1.0-uReflectionFactor)*color + uReflectionFactor*texture(uReflectionCubemap, reflectionDir)`)
     }
 
     createAmbientLight(){
@@ -119,12 +121,23 @@ export default class Shaders{
 
     createSkyBox(){
         this.sw.addVertexAttribute(Types.vec4, "iPosition")
-        this.sw.setVertexGlPosition("aPosition")
-        this.sw.addVertexOut(Types.vec4, "position", "aPosition")
+        this.sw.setVertexGlPosition("iPosition")
+        this.sw.addVertexOut(Types.vec4, "position", "iPosition")
         this.sw.addFragmentUniform(Types.mat4, "uViewProjection")
+        this.sw.addFragmentUniform(Types.mat4, "uMatModel")
         this.sw.addFragmentUniform(Types.cubemap, "uCubemap")
         this.sw.addFragmentContent("vec4 pos = inverse(uViewProjection)*position")
         this.sw.addFragmentColorModifier("color = texture(uCubemap, pos.xzy/pos.w)")
+    }
+
+    createShadowmap(){
+        this.sw.addVertexAttribute(Types.vec4, "iPosition")
+        this.sw.addVertexUniform(Types.mat4, "uMatModel")
+        this.sw.addVertexUniform(Types.mat4, "uMatView")
+        this.sw.addVertexUniform(Types.mat4, "uMatProjection")
+        this.sw.setVertexGlPosition("uMatProjection * uMatView * uMatModel * iPosition")
+        this.sw.addVertexOut(Types.float, "vDepth", "(gl_Position.z+1.0)/2.0")
+        this.sw.addFragmentColorModifier("color = vec4(vDepth, vDepth, vDepth, 1.0)")
     }
 
     createDebugFullRed(){

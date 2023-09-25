@@ -19,12 +19,15 @@ export default class ProgramWrapper{
                 this.generateDefaultShaders(shaders)
                 break
             case "skybox":
+                this.generateSkyBox(shaders)
                 break
             case "shadowmap":
+                this.generateShadowmap(shaders)
                 break
             default:
                 console.warn("Invalid shader type : "+shaders_type)
         }
+        console.log(shaders.getVertex() + shaders.getFragment())
         
         this.gl.attachShader(program, this._compileShader(this.gl.VERTEX_SHADER,   shaders.getVertex()))
         this.gl.attachShader(program, this._compileShader(this.gl.FRAGMENT_SHADER, shaders.getFragment()))
@@ -38,20 +41,23 @@ export default class ProgramWrapper{
     generateDefaultShaders(shaders){
         let vao = shaders.createVAO()
         let mat = shaders.createDefaultMatrices(vao.position, vao.normal)
-        //let cmap = shaders.createCubemap()
-        shaders.createTexture(false)//true, mat.view, mat.vNormal, mat.surfaceToCam, cmap.cubemap)
+        shaders.createReflection(mat.view, mat.vNormal, mat.surfaceToCam)
+        shaders.createTexture()
         shaders.createAmbientLight()
         shaders.createDirectionalLight(mat.view3)
         let pointLight = shaders.createPointLight(mat.view3, mat.modelPosition, true, mat.surfaceToCam)
         shaders.createConeLight(mat.view3)
-        //shaders.createDirectionalShadowMap(mat.modelPosition)
-        //shaders.createOmniShadowMap(mat.modelPosition, pointLight.model_lightToSurface)
-        console.log(shaders.getVertex() + shaders.getFragment())
+        shaders.createDirectionalShadowMap(mat.modelPosition)
+        shaders.createOmniShadowMap(mat.modelPosition, pointLight.model_lightToSurface)
     }
 
     generateSkyBox(shaders){
-        let vao = shaders.createVAO()
-        
+        shaders.createSkyBox()
+    }
+
+    generateShadowmap(shaders){
+        shaders.createShadowmap()
+
     }
     
     setShaderParams(params, program_name="default"){
@@ -60,7 +66,7 @@ export default class ProgramWrapper{
 
     clearAndDraw(objects, program_name="default", mode=this.gl.TRIANGLES){
         this.gl.clear(this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT)
-        this._draw(objects, program_name, mode)
+        this.draw(objects, program_name, mode)
     }
 
     /*printDebugInfos(){
@@ -77,7 +83,7 @@ export default class ProgramWrapper{
         console.log(this.gl.getAttachedShaders(this.program))
     }*/
 
-    _draw(objects, program_name, mode){
+    draw(objects, program_name="default", mode=this.gl.TRIANGLES){
         let prog = this.programs[program_name]
         this.gl.useProgram(prog.program)  
         for(const obj_name in objects){
