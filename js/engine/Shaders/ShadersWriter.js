@@ -120,14 +120,11 @@ export default class ShadersWriter{
     }
 
     writeFragment(){
-        let lighting_factor
+        let color
         if(this.fragment.lighting_factor!=0){
-            lighting_factor = `
-                vec3 lightingFactor =${this.fragment.lighting_factor.join(" + ")+this.endl}
-                color = vec4(1.0, 1.0, 1.0, 1.0) * vec4(lightingFactor, 1.0);
-            `
+            color = `color = vec4(${this.fragment.lighting_factor.join(" + ")}, 1.0);`
         }else{
-            lighting_factor = ""
+            color = ""
         }
         return `#version 300 es
             precision highp float;
@@ -144,7 +141,7 @@ export default class ShadersWriter{
             ${this.fragment.functions.join("\r")}
             void main() {
                 ${this.fragment.content.join(this.endlTab)+this.endl}
-                ${lighting_factor}
+                ${color}
                 ${this.fragment.color_modifiers.join(this.endlTab)+this.endl}
             }
         `.replace(/            /g,"")

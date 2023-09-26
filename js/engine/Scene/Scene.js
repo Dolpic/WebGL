@@ -102,6 +102,7 @@ export default class Scene{
             ],
             lightMatrix : glMatrix.mat4.create()
         }
+        //this.omniShadowMap.camera.setOrthoProjection(-1, 1, -1, 1, 0.1, 200)
         this.omniShadowMap.camera.setProjection(this.screenSize.width/this.screenSize.height, 90)
         this.programs.setShaderParams({uMatProjection: this.omniShadowMap.camera.getState().projection}, "omniShadowmap")
     }
@@ -120,7 +121,11 @@ export default class Scene{
 
         for(let i=0; i<6; i++){
             this.omniShadowMap.camera.setCamera(this.lights.getState().pointPosition, cameraRotations[i])
+            this.programs.setShaderParams({uMatView: this.omniShadowMap.camera.getState().view}, "omniShadowmap")
             this.omniShadowMap.framebuffers[i].use()
+            /*if(i == 0){
+                this.useDefaultFramebuffer() 
+            }*/
             this.programs.clearAndDraw(objects, "omniShadowmap")
         }
 
@@ -128,7 +133,6 @@ export default class Scene{
         Utils.transformMatrix(this.omniShadowMap.lightMatrix, [0.5,0.5,0.5], [0,0,0], [0.5,0.5,0.5])
         glMatrix.mat4.multiply(this.omniShadowMap.lightMatrix, this.omniShadowMap.lightMatrix, camMatrices.projection)
         glMatrix.mat4.multiply(this.omniShadowMap.lightMatrix, this.omniShadowMap.lightMatrix, camMatrices.view)
-        this.programs.setShaderParams({uMatView: camMatrices.view}, "omniShadowmap")
         this.programs.setShaderParams({uMatOmniShadowMap: this.omniShadowMap.lightMatrix})
     }
 
@@ -147,15 +151,15 @@ export default class Scene{
         this.gl.enableVertexAttribArray(positionLocation)
         this.gl.vertexAttribPointer(positionLocation, 3, this.gl.FLOAT, false, 0, 0) 
         let cubemap = this.textures.createCubemap(folder)
-        this.programs.setShaderParams({uCubemap : cubemap}, "skybox")
-        this.programs.setShaderParams({uReflectionCubemap : cubemap})
+        this.programs.setShaderParams({uCubemap: cubemap}, "skybox")
+        this.programs.setShaderParams({uReflectionCubemap: cubemap})
     }
 
     renderSkybox(){
         let viewProjection = glMatrix.mat4.create()
         let cameraState = this.camera.getState()
         glMatrix.mat4.multiply(viewProjection, cameraState.projection, cameraState.view)
-        this.programs.setShaderParams({uViewProjection : viewProjection}, "skybox")
+        this.programs.setShaderParams({uViewProjection: viewProjection}, "skybox")
         this.programs.draw([this.skybox], "skybox")
     }
 

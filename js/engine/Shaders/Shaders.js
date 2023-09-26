@@ -48,7 +48,7 @@ export default class Shaders{
 
     createTexture(){
         this.sw.addFragmentUniform(Types.texture, "uTexture")
-        this.sw.addFragmentColorModifier("color += texture(uTexture, vTextureCoord)")
+        this.sw.addFragmentColorModifier("color *= texture(uTexture, vTextureCoord)")
     }
 
     createReflection(matView, vNormal, surfaceToCam){
@@ -75,7 +75,7 @@ export default class Shaders{
     createPointLight(matView3, modelPosition, withSpecular=false, surfaceToCam=null){
         this.sw.addVertexUniform(Types.vec3, "uLightPointPosition")
         this.sw.addVertexOut(Types.vec3, "v_view_surfaceToPointLight", `normalize(${matView3} * (uLightPointPosition - ${modelPosition}.xyz))`)
-        this.sw.addVertexOut(Types.vec3, "v_model_pointLightToSurface", `${modelPosition}.xyz - uLightPointPosition`)
+        this.sw.addVertexOut(Types.vec3, "v_model_pointLightToSurface", `${modelPosition}.xyz/${modelPosition}.w - uLightPointPosition`)
         this.sw.addFragmentUniform(Types.vec3, "uLightPointColor")
         this.sw.addFragmentContent(`vec3 pointLight = uLightPointColor * cappedAngleWithNormal(v_view_surfaceToPointLight)`)
         this.sw.addFragmentLightingFactor("pointLight")
@@ -114,9 +114,11 @@ export default class Shaders{
         this.sw.addVertexOut(Types.vec4, "vOmniShadowMapCoord", `uMatOmniShadowMap * ${modelPosition}`)
         this.sw.addFragmentUniform(Types.cubemap, "uOmniShadowMap")
         this.sw.addFragmentContent(`float maxCoord = max( abs(${model_lightToSurface}.x), max(abs(${model_lightToSurface}.y), abs(${model_lightToSurface}.z)))`)
-        this.sw.addFragmentContent(`float magnitude = ((far_plane+near_plane)/(far_plane-near_plane)) + (1.0/maxCoord)*( (-2.0*far_plane*near_plane)/(far_plane-near_plane) )`)
-        this.sw.addFragmentContent(`bool isInOmniShadow = texture(uOmniShadowMap, ${model_lightToSurface}).r < magnitude + shadow_bias`)
+        this.sw.addFragmentContent(`float depth = ((far_plane+near_plane)/(far_plane-near_plane)) + (1.0/maxCoord)*( (-2.0*far_plane*near_plane)/(far_plane-near_plane) )`)
+        //this.sw.addFragmentContent(`float depth = 2.0*(maxCoord-near_plane)/(far_plane-near_plane)-1.0`)
+        this.sw.addFragmentContent(`bool isInOmniShadow = texture(uOmniShadowMap, ${model_lightToSurface}).r < depth /*+ shadow_bias*/`)
         this.sw.addFragmentColorModifier("color = vec4(isInOmniShadow ? color.rgb*shadowReduce : color.rgb, color.a)")
+        //this.sw.addFragmentColorModifier(`color.rgb *= pow( texture(uOmniShadowMap, ${model_lightToSurface}).r, 50.0)`)
     }
 
     createSkyBox(){
