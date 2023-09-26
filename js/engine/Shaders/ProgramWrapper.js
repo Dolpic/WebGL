@@ -27,7 +27,6 @@ export default class ProgramWrapper{
             default:
                 console.warn("Invalid shader type : "+shaders_type)
         }
-        console.log(shaders.getVertex() + shaders.getFragment())
         
         this.gl.attachShader(program, this._compileShader(this.gl.VERTEX_SHADER,   shaders.getVertex()))
         this.gl.attachShader(program, this._compileShader(this.gl.FRAGMENT_SHADER, shaders.getFragment()))

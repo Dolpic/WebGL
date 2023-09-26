@@ -57,9 +57,10 @@
         <div class="explanations">
             <p>
                 This 3D model viewer is built from scratch in WebGL2. <br>
-                It is for now very limited and is a work in progress, but has the following graphics properties :
+                It is for now very limited and is a work in progress, but has the following graphics festures :
             </p>
                 <ul>
+                    <li>Dynamically generated shaders</li>
                     <li>One ambient light</li>
                     <li>One directional light, casting no shadows</li>
                     <li>One point light, casting omnidirectional shadows and specular</li>
@@ -162,6 +163,8 @@
             updateView(true)
             updateMaterial()
 
+            generateShadersTab()
+
             render(0)
         }
 
@@ -182,6 +185,23 @@
 
             engine.render()
             needRestart ? start() : requestAnimationFrame(render)
+        }
+
+        function generateShadersTab(){
+            let programs = engine.scene.programs.programs
+            let content = "<p>Dynamically generated shaders</p><hr>"
+            for(shader_name in programs){
+                console.log(programs[shader_name])
+                content += `
+                    <p>${shader_name}</p>
+                    <span>Vertex</span>
+                    <textarea readonly>${programs[shader_name].shaders.getVertex()}</textarea>
+                    <span>Fragment</span>
+                    <textarea readonly>${programs[shader_name].shaders.getFragment()}</textarea>
+                    <hr>
+                `
+            }
+            getById("mainTab_Shaders").innerHTML = content
         }
 
         function updateView(fromSliders){
