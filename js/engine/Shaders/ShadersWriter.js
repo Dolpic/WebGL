@@ -132,7 +132,7 @@ export default class ShadersWriter{
             ${this._createVariableList("uniform", this.fragment.uniforms)}
             out vec4 color;
 
-            const float shadow_bias = -0.003;
+            const float shadow_bias = -0.0003;
             const float coneLighEffectSmoothLow  = 0.48;
             const float coneLighEffectSmoothHigh = 0.55;
             const float shadowReduce = 0.3;

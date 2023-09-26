@@ -80,11 +80,11 @@
                 generateSliders("AL",  ["R","G","B"], 0,   1,   "Ambiant light color",        [0,0,0]) +
                 generateSliders("DL",  ["R","G","B"], 0,   1,   "Directional light color",    [0,0,0]) +
                 generateSliders("DL",  ["X","Y","Z"], -1,  1,   "Directional light direction") +
-                generateSliders("PL",  ["R","G","B"], 0,   1,   "Point light color",          [0,0,0]) +
+                generateSliders("PL",  ["R","G","B"], 0,   1,   "Point light color",          [1,1,1])+
                 generateSliders("PL",  ["X","Y","Z"], -10, 10,  "Point light position",       [6.8, 10, 9]) +
                 generateSliders("CL",  ["R","G","B"], 0,   1,   "Cone light color") +
                 generateSliders("CL",  ["X","Y","Z"], -10, 10,  "Cone light position",        [6.8, 10, 9]) +
-                generateSliders("CLD", ["X","Y","Z"], -180,   180, "Cone light direction",    [-63, 10, 0])
+                generateSliders("CLD", ["X","Y","Z"], -180,   180, "Cone light direction",    [-48, -20, 0])
             )
 
             getById("parameters").innerHTML = generateTabs("mainTab", [

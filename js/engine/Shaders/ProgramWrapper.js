@@ -48,7 +48,7 @@ export default class ProgramWrapper{
         let pointLight = shaders.createPointLight(mat.view3, mat.modelPosition, true, mat.surfaceToCam)
         shaders.createConeLight(mat.view3)
         shaders.createDirectionalShadowMap(mat.modelPosition)
-        shaders.createOmniShadowMap(mat.modelPosition, pointLight.model_lightToSurface)
+        shaders.createOmniShadowMap(pointLight.model_lightToSurface)
     }
 
     generateSkyBox(shaders){

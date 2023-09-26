@@ -99,8 +99,7 @@ export default class Scene{
                 new Framebuffer(this.gl, size, depthTexture.texture, this.gl.TEXTURE_CUBE_MAP_NEGATIVE_Y),
                 new Framebuffer(this.gl, size, depthTexture.texture, this.gl.TEXTURE_CUBE_MAP_POSITIVE_Z),
                 new Framebuffer(this.gl, size, depthTexture.texture, this.gl.TEXTURE_CUBE_MAP_NEGATIVE_Z),
-            ],
-            lightMatrix : glMatrix.mat4.create()
+            ]
         }
         //this.omniShadowMap.camera.setOrthoProjection(-1, 1, -1, 1, 0.1, 200)
         this.omniShadowMap.camera.setProjection(this.screenSize.width/this.screenSize.height, 90)
@@ -128,12 +127,6 @@ export default class Scene{
             }*/
             this.programs.clearAndDraw(objects, "omniShadowmap")
         }
-
-        const camMatrices = this.omniShadowMap.camera.getState()
-        Utils.transformMatrix(this.omniShadowMap.lightMatrix, [0.5,0.5,0.5], [0,0,0], [0.5,0.5,0.5])
-        glMatrix.mat4.multiply(this.omniShadowMap.lightMatrix, this.omniShadowMap.lightMatrix, camMatrices.projection)
-        glMatrix.mat4.multiply(this.omniShadowMap.lightMatrix, this.omniShadowMap.lightMatrix, camMatrices.view)
-        this.programs.setShaderParams({uMatOmniShadowMap: this.omniShadowMap.lightMatrix})
     }
 
     setSkybox(folder){

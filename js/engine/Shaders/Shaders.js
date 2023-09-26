@@ -7,7 +7,7 @@ export default class Shaders{
     }
 
     createVAO(){
-        this.sw.addVertexAttribute(Types.vec4, "iPosition")
+        this.sw.addVertexAttribute(Types.vec3, "iPosition")
         this.sw.addVertexAttribute(Types.vec4, "iColor")
         this.sw.addVertexAttribute(Types.vec3, "iNormal")
         this.sw.addVertexAttribute(Types.vec2, "iTexCoord")
@@ -22,7 +22,7 @@ export default class Shaders{
         this.sw.addVertexUniform(Types.mat4, "uMatView")
         this.sw.addVertexUniform(Types.mat4, "uMatProjection")
 
-        this.sw.addVertexPrePositionContent(`vec4 modelPosition = uMatModel * ${iPosition}`)
+        this.sw.addVertexPrePositionContent(`vec4 modelPosition = uMatModel * vec4(${iPosition}, 1.0)`)
         this.sw.addVertexPrePositionContent(`vec3 modelNormal   = mat3(uMatModel) * ${iNormal}`)
         this.sw.addVertexPrePositionContent(`mat3 uMatView3     = mat3(uMatView)`)
 
@@ -105,20 +105,26 @@ export default class Shaders{
         this.sw.addVertexOut(Types.vec4, "vDirShadowMapCoord", `uMatDirShadowMap * ${modelPosition}`)
         this.sw.addFragmentUniform(Types.texture, "uDirShadowMap")
         this.sw.addFragmentContent(`vec3 shadowMapCoord = vDirShadowMapCoord.xyz / vDirShadowMapCoord.w`)
-        this.sw.addFragmentContent(`bool isInDirShadow = texture(uDirShadowMap, shadowMapCoord.xy).r < shadowMapCoord.z + shadow_bias`)
+        this.sw.addFragmentContent(`bool isInDirShadow = texture(uDirShadowMap, shadowMapCoord.xy).r < shadowMapCoord.z + shadow_bias*5.0`)
         this.sw.addFragmentColorModifier("color = vec4(isInDirShadow ? color.rgb*shadowReduce : color.rgb, color.a)")
     }
 
-    createOmniShadowMap(modelPosition, model_lightToSurface){
-        this.sw.addVertexUniform(Types.mat4, "uMatOmniShadowMap")
-        this.sw.addVertexOut(Types.vec4, "vOmniShadowMapCoord", `uMatOmniShadowMap * ${modelPosition}`)
+    createOmniShadowMap(model_lightToSurface){
         this.sw.addFragmentUniform(Types.cubemap, "uOmniShadowMap")
-        this.sw.addFragmentContent(`float maxCoord = max( abs(${model_lightToSurface}.x), max(abs(${model_lightToSurface}.y), abs(${model_lightToSurface}.z)))`)
-        this.sw.addFragmentContent(`float depth = ((far_plane+near_plane)/(far_plane-near_plane)) + (1.0/maxCoord)*( (-2.0*far_plane*near_plane)/(far_plane-near_plane) )`)
+        this.sw.addFragmentContent(`float zLocal = max( abs(${model_lightToSurface}.x), max(abs(${model_lightToSurface}.y), abs(${model_lightToSurface}.z)))`)
+        this.sw.addFragmentContent(`float depth = (far_plane+near_plane)/(far_plane-near_plane) - 1.0/zLocal * 2.0*far_plane*near_plane/(far_plane-near_plane)`)
+        this.sw.addFragmentContent(`depth = (depth+1.0)/2.0`)
         //this.sw.addFragmentContent(`float depth = 2.0*(maxCoord-near_plane)/(far_plane-near_plane)-1.0`)
-        this.sw.addFragmentContent(`bool isInOmniShadow = texture(uOmniShadowMap, ${model_lightToSurface}).r < depth /*+ shadow_bias*/`)
+        this.sw.addFragmentContent(`bool isInOmniShadow = texture(uOmniShadowMap, ${model_lightToSurface}).r < depth + shadow_bias`)
         this.sw.addFragmentColorModifier("color = vec4(isInOmniShadow ? color.rgb*shadowReduce : color.rgb, color.a)")
-        //this.sw.addFragmentColorModifier(`color.rgb *= pow( texture(uOmniShadowMap, ${model_lightToSurface}).r, 50.0)`)
+        //this.sw.addFragmentColorModifier(`color.rgb *= pow( texture(uOmniShadowMap, ${model_lightToSurface}).r , 70.0)`)
+
+        //this.sw.addFragmentColorModifier(`
+       // if(texture(uOmniShadowMap, ${model_lightToSurface}).r < depth /*+0.01*/){
+       //     color = vec4(1.0, 0.0, 0.0, 1.0);
+       // }else if(texture(uOmniShadowMap, ${model_lightToSurface}).r > depth /*+0.01*/){
+        //    color = vec4(0.0, (texture(uOmniShadowMap, ${model_lightToSurface}).r - depth)*100.0 , 0.0, 1.0);
+        //}`)
     }
 
     createSkyBox(){
