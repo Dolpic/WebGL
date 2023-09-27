@@ -1,7 +1,3 @@
-function getById(id) { return document.getElementById(id) }
-function getValue(id){ return getById(id).value }
-function getChildren(id){ return Array.from(getById(id).children) }
-
 function getTransformSlidersValues(id){
     return [
         [getValue(id+"_TX"), getValue(id+"_TY"), getValue(id+"_TZ")], 
@@ -18,9 +14,7 @@ function generateTransformSliders(id, changeCallback, values=[[0,0,0],[0,0,0],[1
 }
 
 function getMatrixValues(id){
-    let values = []
-    getById(id+"_matrix").querySelectorAll("input").forEach(e => values.push(parseFloat(e.value)))
-    return values
+    return getById(id+"_matrix").querySelectorAll("input").map(e => parseFloat(e.value))
 }
 function setMatrixValues(id, values){
     getById(id+"_matrix").querySelectorAll("input").forEach((e,i) => e.value = values[i].toFixed(2))
@@ -37,15 +31,13 @@ function selectTab(tab, tab_selected, tabs_name){
     getChildren(tabs_name+"_content").forEach(child => {
         child.style.display = child.id == tab_selected ? "inline-block" : "none"
     })
-    getChildren(tabs_name).forEach(child => {
-        child === tab ? child.classList.add("selectedTab") : child.classList.remove("selectedTab")
-    })
+    getChildren(tabs_name).forEach(child =>  child === tab ? child.classList.add("selectedTab") : child.classList.remove("selectedTab"))
 }
 function generateTabs(tabName, names_content){
     result = `<div id="${tabName}" class="tabs_list">`
-    names_content.forEach(elem => result += `<div onclick="selectTab(this, '${tabName}_${elem[0]}', '${tabName}')">${elem[0]}</div>`)
+    names_content.forEach(e => result += `<div onclick="selectTab(this, '${tabName}_${e[0]}', '${tabName}')">${e[0]}</div>`)
     result += `</div><div id="${tabName}_content" class="tabs_content">`
-    names_content.forEach(elem => result += `<div id="${tabName}_${elem[0]}">${elem[1]}</div>`)
+    names_content.forEach(e => result += `<div id="${tabName}_${e[0]}">${e[1]}</div>`)
     return result + `</div>`
 }
 
@@ -56,16 +48,12 @@ function generateSliders(prefix, suffixes, min, max, title, default_values=null,
         let value = default_values == null ? (max+min)/2 : default_values[i]
         let id_value = id+"_value"
         let on_input = `getById('${id_value}').innerHTML = parseFloat(getById('${id}').value).toFixed(2);${on_input_func}`
-
         result += `
         <tr>
             <td>${e}</td>
-            <td>
-                <input oninput="${on_input}" type="range" id="${id}" value="${value}" min="${min}" max="${max}" step="${step}"/>
-            </td>
+            <td><input oninput="${on_input}" type="range" id="${id}" value="${value}" min="${min}" max="${max}" step="${step}"/></td>
             <td id="${id_value}">${value.toFixed(2)}</td>
         </tr>`
     })
-    result += "</table><hr>"
-    return result
+    return result + "</table><hr>"
 }

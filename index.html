@@ -4,6 +4,7 @@
         <link rel="stylesheet" href="style.css">
         <script src="js/utils.js"></script>
         <script src="js/ModelHelper.js"></script>
+        <script src="ui.js"></script>
         <script type="module">
             import Engine  from "./js/engine/engine.js"
             import Shapes  from "./ressources/shapes/module.js"
@@ -76,26 +77,15 @@
         </div>
     </body>    
     <script>
+        function getById(id) {    return document.getElementById(id) }
+        function getValue(id){    return getById(id).value }
+        function getChildren(id){ return Array.from(getById(id).children) }
+
         function init(){
-            let lightsContent = (
-                generateSliders("AL",  ["R","G","B"], 0,   1,   "Ambiant light color",        [0,0,0]) +
-                generateSliders("DL",  ["R","G","B"], 0,   1,   "Directional light color",    [0,0,0]) +
-                generateSliders("DL",  ["X","Y","Z"], -1,  1,   "Directional light direction") +
-                generateSliders("PL",  ["R","G","B"], 0,   1,   "Point light color",          [1,1,1])+
-                generateSliders("PL",  ["X","Y","Z"], -10, 10,  "Point light position",       [6.8, 10, 9]) +
-                generateSliders("CL",  ["R","G","B"], 0,   1,   "Cone light color") +
-                generateSliders("CL",  ["X","Y","Z"], -10, 10,  "Cone light position",        [-8.47, 10, 9]) +
-                generateSliders("CLD", ["X","Y","Z"], -180,   180, "Cone light direction",    [-48, -20, 0])
-            )
-
-            getById("parameters").innerHTML = generateTabs("mainTab", [
-                ["View", ""], ["Lights", lightsContent], ["Objects", ""], ["Shaders", ""], ["Material", ""]
-            ])
-
-            getById("mainTab_View").style.display = "inline-block";
+            getById("parameters").innerHTML = generateTabs("mainTab", [ ["View",""], ["Lights",""], ["Objects",""], ["Shaders",""], ["Material",""]])
+            //getById("mainTab_View").style.display = "inline-block";
             getById("mainTab").firstChild.classList.add("selectedTab")
 
-            Shaders        = document.Shaders
             Shapes         = document.Shapes
             Engine         = document.Engine
             updateInterval = 30
@@ -154,16 +144,16 @@
             //ModelHelper.loadWavefront("gizmo/gizmo.obj", "").then(obj => engine.addObject(obj, "Gizmo"))
             //engine.addObject(Shapes.LightMarker, "Light_marker", [0,0,0])
 
-            ModelHelper.loadWavefronts(wavefronts, engine).then( () => generateObjectsTab(engine.objects.list))
-
             engine.setSkybox("ressources/cubemaps/"+skybox)
 
             generateViewTab(engine)
-            generateMaterialTab()
-            updateView(true)
-            updateMaterial()
-
+            generateLightsTab()
+            ModelHelper.loadWavefronts(wavefronts, engine).then( () => generateObjectsTab(engine.objects.list))
             generateShadersTab()
+            generateMaterialTab()
+
+            updateViewTab(true)
+            updateMaterialTab()
 
             render(0)
         }
@@ -185,95 +175,6 @@
 
             engine.render()
             needRestart ? start() : requestAnimationFrame(render)
-        }
-
-        function generateShadersTab(){
-            let programs = engine.scene.programs.programs
-            let content = "<p>Dynamically generated shaders</p><hr>"
-            for(shader_name in programs){
-                console.log(programs[shader_name])
-                content += `
-                    <p>${shader_name}</p>
-                    <span>Vertex</span>
-                    <textarea readonly>${programs[shader_name].shaders.getVertex()}</textarea>
-                    <span>Fragment</span>
-                    <textarea readonly>${programs[shader_name].shaders.getFragment()}</textarea>
-                    <hr>
-                `
-            }
-            getById("mainTab_Shaders").innerHTML = content
-        }
-
-        function updateView(fromSliders){
-            if(fromSliders){
-                engine.scene.camera.setView(...getTransformSlidersValues("view"))
-                setMatrixValues("view", engine.getViewProjection().view)
-            }else{
-                const values = getMatrixValues("view")
-                console.log(values)
-                engine.gl.useProgram(engine.program)
-                engine.scene.camera.view = values
-                engine.setViewProjection(values)
-            }
-        }
-        function generateViewTab(engine){
-            getById("mainTab_View").innerHTML = (
-                generateTransformSliders("view", "updateView(true)", [[0,0,-26],[-71,0,-120],[1,1,1]]) +
-                "<p>View matrix : </p>"+
-                generateMatrix("view", `updateView(false)`, engine.getViewProjection().view) 
-            )
-        }
-
-        function updateMaterial(){
-            const specular = getValue("SpecularFactor")
-            const reflection = getValue("ReflectionFactor")
-            engine.scene.setMaterial(specular,reflection)
-        }
-        function generateMaterialTab(){
-            getById("mainTab_Material").innerHTML = 
-                generateSliders("Specular",   ["Factor"], 0, 5, "Specular",   null, "updateMaterial()") +
-                generateSliders("Reflection", ["Factor"], 0, 1, "Reflection", [0.1], "updateMaterial()")
-        }
-
-        function updateObject(obj_name, fromSliders){
-            const obj_list = Object.values(engine.objects.list)
-            if(fromSliders){
-                let obj_found = null 
-                obj_list.forEach(obj => {
-                    if(obj.name == obj_name) {
-                        obj_found = obj
-                        engine.setObjectTransform(obj_name, ...getTransformSlidersValues(obj_name))
-                    }
-                })
-                setMatrixValues(obj_name, obj_found.modelMatrix)
-            }else{
-                let values = getMatrixValues(obj_name)
-                obj_list.forEach(obj => {
-                    if(obj.name == obj_name) {
-                        obj.modelMatrix = values
-                    }
-                })
-            }
-        }
-        function generateObjectsTab(objs){
-            let names_content = []
-            Object.values(objs).forEach( (obj, i) => {
-                let content = `Number of vertices : ${obj.count}<div id="objects_details_${i}_matrix"></div>`
-                content += generateTransformSliders(obj.name, `updateObject('${obj.name}', true)`)
-                content += "<p>Model matrix :</p>"
-                content += generateMatrix(obj.name, `updateObject('${obj.name}', false)`, obj.modelMatrix)
-                names_content.push([obj.name, content])
-            })
-            getById("mainTab_Objects").innerHTML = 
-                `<select id="model_selection">
-                    <option value="1">Standford Dragon</option> 
-                    <option value="2">Utah Teapot</option>
-                    <option value="3">Suzanne (blender)</option>  
-                    <option value="4">Gizmo</option>  
-                </select>
-                <button onclick="addModel()">Add</button>
-                <hr>` +
-                generateTabs("objectsTab", names_content)
         }
 
         function addModel(){
