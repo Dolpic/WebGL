@@ -24,6 +24,12 @@ export default class RenderingEngine{
             this.scene.createShadowMap(this.params.shadow_map_size)
             this.scene.createOmniShadowMap(this.params.shadow_map_size)
         }
+
+        this.defaultMaterial = {
+            specularColor:    [1,1,1],
+            specularPower:    2.5,
+            reflectionFactor: 0.1,
+        }
     }
     
     setDefaultParams(params){
@@ -47,12 +53,8 @@ export default class RenderingEngine{
         return this.scene.camera.getState()
     }
     
-    setObjectTransform(name, position=[0,0,0], rotation=[0,0,0], scale=[1,1,1]){
-        this.objects.setTransform(name, position, rotation, scale)
-    }
-    
-    addObject(obj, name, position=[0,0,0], rotation=[0,0,0], scale=[1,1,1]){
-        this.objects.add(obj, name, position, rotation, scale)
+    addObject(obj, name, material=undefined, position=[0,0,0], rotation=[0,0,0], scale=[1,1,1]){
+        this.objects.add(obj, name, material==null?this.defaultMaterial:material, position, rotation, scale)
     }
     
     setViewProjection(view, projection=null){

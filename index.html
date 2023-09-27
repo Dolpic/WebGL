@@ -69,7 +69,7 @@
                     <li>A skybox</li>
                     <li>Textures, for now only one for the whole scene</li>
                     <li>Reflective material, reflecting the skybox only (for now !)</li>
-                    <li>A few models, with parameters to change their transform</li>
+                    <li>A few models, with parameters to change their transform and material (see Objects tab)</li>
                 </ul>
             <p>
                 Some features are still lacking, and some combinations of parameters can produce unrealistic-looking scenes.
@@ -82,7 +82,7 @@
         function getChildren(id){ return Array.from(getById(id).children) }
 
         function init(){
-            getById("parameters").innerHTML = generateTabs("mainTab", [ ["View",""], ["Lights",""], ["Objects",""], ["Shaders",""], ["Material",""]])
+            getById("parameters").innerHTML = generateTabs("mainTab", [ ["View",""], ["Lights",""], ["Objects",""], ["Shaders",""]])
             //getById("mainTab_View").style.display = "inline-block";
             getById("mainTab").firstChild.classList.add("selectedTab")
 
@@ -93,19 +93,10 @@
             frameNumber    = 0
             engine         = null
             needRestart    = false
-            light_marker   = null
             skybox         = getValue("skybox_select")
             params         = {}
         }
 
-        function getAmbiantLightColor(){ return [getValue("ALR"), getValue("ALG"), getValue("ALB")] }
-        function getDirLightColor(){ return [getValue("DLR"), getValue("DLG"), getValue("DLB")] }
-        function getDirLightPos(){ return [getValue("DLX"), getValue("DLY"), getValue("DLZ")] }
-        function getPointLightColor(){ return [getValue("PLR"), getValue("PLG"), getValue("PLB")] }
-        function getPointLightPos(){ return [getValue("PLX"), getValue("PLY"), getValue("PLZ")] }
-        function getConeLightColor(){ return [getValue("CLR"), getValue("CLG"), getValue("CLB")] }
-        function getConeLightPos(){ return [getValue("CLX"), getValue("CLY"), getValue("CLZ")] }
-        function getConeLightDir(){ return [getValue("CLDX"), getValue("CLDY"), getValue("CLDZ")] }
         function getDepthFunction(){
             switch(getValue("depth_func")){
                 case "NEVER"    : return WebGL2RenderingContext.NEVER 
@@ -142,7 +133,6 @@
             engine.addObject(Shapes.Cube, "Cube_4", [-2,0,1])*/
             //ModelHelper.loadWavefront("dragon/dragon.obj", "").then(obj => engine.addObject(obj, "Dragon"))
             //ModelHelper.loadWavefront("gizmo/gizmo.obj", "").then(obj => engine.addObject(obj, "Gizmo"))
-            //engine.addObject(Shapes.LightMarker, "Light_marker", [0,0,0])
 
             engine.setSkybox("ressources/cubemaps/"+skybox)
 
@@ -150,10 +140,9 @@
             generateLightsTab()
             ModelHelper.loadWavefronts(wavefronts, engine).then( () => generateObjectsTab(engine.objects.list))
             generateShadersTab()
-            generateMaterialTab()
 
             updateViewTab(true)
-            updateMaterialTab()
+            updateLightsTab()
 
             render(0)
         }
@@ -167,11 +156,6 @@
                 getById("fps").innerHTML = Math.round(1000/deltaTime)
                 getById("refresh_rate").innerHTML = Math.round(deltaTime)+" ms"
             }
-
-            engine.scene.lights.setAmbient(getAmbiantLightColor())
-            engine.scene.lights.setDirectional(getDirLightColor(), getDirLightPos())
-            engine.scene.lights.setPoint(getPointLightColor(), getPointLightPos())
-            engine.scene.lights.setCone(getConeLightColor(), getConeLightPos(), getConeLightDir())
 
             engine.render()
             needRestart ? start() : requestAnimationFrame(render)

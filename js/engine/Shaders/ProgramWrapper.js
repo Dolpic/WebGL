@@ -68,20 +68,6 @@ export default class ProgramWrapper{
         this.draw(objects, program_name, mode)
     }
 
-    /*printDebugInfos(){
-        console.log("Program informations :")
-        console.log("Attributes : ")
-        for(let i=0; i<this.gl.getProgramParameter(this.program, this.gl.ACTIVE_ATTRIBUTES); i++){
-          console.log(this.gl.getActiveAttrib(this.program, i))
-        }
-        console.log("Uniforms : ")
-        for(let i=0; i<this.gl.getProgramParameter(this.program, this.gl.ACTIVE_UNIFORMS); i++){
-          console.log(this.gl.getActiveUniform(this.program, i))
-        }
-        console.log("Shaders : ")
-        console.log(this.gl.getAttachedShaders(this.program))
-    }*/
-
     draw(objects, program_name="default", mode=this.gl.TRIANGLES){
         let prog = this.programs[program_name]
         this.gl.useProgram(prog.program)  
@@ -89,6 +75,15 @@ export default class ProgramWrapper{
             const obj = objects[obj_name]
             prog.shaders.setVAO(obj.vao)
             prog.shaders.setShaderParams({uMatModel:obj.modelMatrix})
+            if(program_name == "default"){
+                prog.shaders.setShaderParams({
+                    uLightPointSpecularColor: obj.material.specularColor,
+                    uLightPointSpecularPower: obj.material.specularPower,
+                    uReflectionFactor:        obj.material.reflectionFactor,
+                    //uReflectionIterations:    obj.material.reflectionIterations,
+                })
+            }
+           
             this.gl.drawArrays(mode, 0, obj.count)
         }
     }
@@ -102,4 +97,18 @@ export default class ProgramWrapper{
         }
         return shader
     }
+
+    /*printDebugInfos(){
+        console.log("Program informations :")
+        console.log("Attributes : ")
+        for(let i=0; i<this.gl.getProgramParameter(this.program, this.gl.ACTIVE_ATTRIBUTES); i++){
+          console.log(this.gl.getActiveAttrib(this.program, i))
+        }
+        console.log("Uniforms : ")
+        for(let i=0; i<this.gl.getProgramParameter(this.program, this.gl.ACTIVE_UNIFORMS); i++){
+          console.log(this.gl.getActiveUniform(this.program, i))
+        }
+        console.log("Shaders : ")
+        console.log(this.gl.getAttachedShaders(this.program))
+    }*/
 }

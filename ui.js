@@ -17,10 +17,17 @@ function generateShadersTab(){
 function generateObjectsTab(objs){
     let names_content = []
     Object.values(objs).forEach( (obj, i) => {
-        let content = `Number of vertices : ${obj.count}<div id="objects_details_${i}_matrix"></div>`
-        content += generateTransformSliders(obj.name, `updateObjectTab('${obj.name}', true)`)
-        content += "<p>Model matrix :</p>"
-        content += generateMatrix(obj.name, `updateObjectTab('${obj.name}', false)`, obj.modelMatrix)
+        let update_func = `updateObjectTab('${obj.name}', true)`
+        let content = `
+            <p>Material</p>
+            ${generateSliders("Specular",   ["Factor_"+obj.name], 0, 5, "Specular",   null,  update_func)}
+            ${generateSliders("Reflection", ["Factor_"+obj.name], 0, 1, "Reflection", [0.1], update_func)}
+            <hr>
+            Number of vertices : ${obj.count}<div id="objects_details_${i}_matrix"></div>
+            ${generateTransformSliders(obj.name, update_func)}
+            <p>Model matrix :</p>
+            ${generateMatrix(obj.name, `updateObjectTab('${obj.name}', false)`, obj.modelMatrix)}
+        `
         names_content.push([obj.name, content])
     })
     getById("mainTab_Objects").innerHTML = `
@@ -40,7 +47,12 @@ function updateObjectTab(obj_name, fromSliders){
         obj_list.forEach(obj => {
             if(obj.name == obj_name) {
                 obj_found = obj
-                engine.setObjectTransform(obj_name, ...getTransformSlidersValues(obj_name))
+                engine.objects.setTransform(obj_name, ...getTransformSlidersValues(obj_name))
+                engine.objects.setMaterial(obj_name, {
+                    specularColor:    [1,1,1],
+                    specularPower:    getValue("SpecularFactor_"+obj_name),
+                    reflectionFactor: getValue("ReflectionFactor_"+obj_name),
+                })
             }
         })
         setMatrixValues(obj_name, obj_found.modelMatrix)
@@ -52,6 +64,9 @@ function updateObjectTab(obj_name, fromSliders){
             }
         })
     }
+
+
+    engine.scene.setMaterial(getValue("SpecularFactor"), getValue("ReflectionFactor"))
 }
 
 function generateViewTab(engine){
@@ -73,27 +88,31 @@ function updateViewTab(fromSliders){
     }
 }
 
-function generateMaterialTab(){
-    getById("mainTab_Material").innerHTML = (
-        generateSliders("Specular",   ["Factor"], 0, 5, "Specular",   null,  "updateMaterialTab()") +
-        generateSliders("Reflection", ["Factor"], 0, 1, "Reflection", [0.1], "updateMaterialTab()")
-    )
-}
-function updateMaterialTab(){
-    const specular = getValue("SpecularFactor")
-    const reflection = getValue("ReflectionFactor")
-    engine.scene.setMaterial(specular,reflection)
-}
-
 function generateLightsTab(){
     getById("mainTab_Lights").innerHTML = (
-        generateSliders("AL",  ["R","G","B"], 0,    1,   "Ambiant light color",     [0,0,0]) +
-        generateSliders("DL",  ["R","G","B"], 0,    1,   "Directional light color", [0,0,0]) +
-        generateSliders("DL",  ["X","Y","Z"], -1,   1,   "Directional light direction") +
-        generateSliders("PL",  ["R","G","B"], 0,    1,   "Point light color",       [1,1,1])+
-        generateSliders("PL",  ["X","Y","Z"], -10,  10,  "Point light position",    [6.8, 10, 9]) +
-        generateSliders("CL",  ["R","G","B"], 0,    1,   "Cone light color") +
-        generateSliders("CL",  ["X","Y","Z"], -10,  10,  "Cone light position",     [-8.47, 10, 9]) +
-        generateSliders("CLD", ["X","Y","Z"], -180, 180, "Cone light direction",    [-48, -20, 0])
+        generateSliders("AL",  ["R","G","B"], 0,    1,   "Ambiant light color",         [0,0,0],         "updateLightsTab()") +
+        generateSliders("DL",  ["R","G","B"], 0,    1,   "Directional light color",     [0,0,0],         "updateLightsTab()") +
+        generateSliders("DL",  ["X","Y","Z"], -1,   1,   "Directional light direction", [0,0,0],         "updateLightsTab()") +
+        generateSliders("PL",  ["R","G","B"], 0,    1,   "Point light color",           [1,1,1],         "updateLightsTab()") +
+        generateSliders("PL",  ["X","Y","Z"], -10,  10,  "Point light position",        [6.8, 10, 9],    "updateLightsTab()") +
+        generateSliders("CL",  ["R","G","B"], 0,    1,   "Cone light color",            [0.5, 0.5, 0.5], "updateLightsTab()") +
+        generateSliders("CL",  ["X","Y","Z"], -10,  10,  "Cone light position",         [-8.47, 10, 9],  "updateLightsTab()") +
+        generateSliders("CLD", ["X","Y","Z"], -180, 180, "Cone light direction",        [-48, -20, 0],   "updateLightsTab()")
+    )
+}
+function updateLightsTab(){
+    engine.scene.lights.setAmbient([getValue("ALR"), getValue("ALG"), getValue("ALB")])
+    engine.scene.lights.setDirectional(
+        [getValue("DLR"), getValue("DLG"), getValue("DLB")], 
+        [getValue("DLX"), getValue("DLY"), getValue("DLZ")]
+    )
+    engine.scene.lights.setPoint(
+        [getValue("PLR"), getValue("PLG"), getValue("PLB")], 
+        [getValue("PLX"), getValue("PLY"), getValue("PLZ")]
+    )
+    engine.scene.lights.setCone(
+        [getValue("CLR"),  getValue("CLG"),  getValue("CLB")], 
+        [getValue("CLX"),  getValue("CLY"),  getValue("CLZ")], 
+        [getValue("CLDX"), getValue("CLDY"), getValue("CLDZ")]
     )
 }

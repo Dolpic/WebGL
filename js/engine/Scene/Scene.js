@@ -41,14 +41,6 @@ export default class Scene{
         this.programs.setShaderParams(params)
     }
 
-    setMaterial(specular, reflection){
-        this.programs.setShaderParams({
-            uLightPointSpecularColor : [1,1,1],
-            uLightPointSpecularPower : specular,
-            uReflectionFactor : reflection
-        })
-    }
-
     createTextures(textureList){
          // TODO now only one texture can be registered
         textureList.forEach(t => this.createTexture(t, "uTexture"))
@@ -101,7 +93,6 @@ export default class Scene{
                 new Framebuffer(this.gl, size, depthTexture.texture, this.gl.TEXTURE_CUBE_MAP_NEGATIVE_Z),
             ]
         }
-        //this.omniShadowMap.camera.setOrthoProjection(-1, 1, -1, 1, 0.1, 200)
         this.omniShadowMap.camera.setProjection(this.screenSize.width/this.screenSize.height, 90)
         this.programs.setShaderParams({uMatProjection: this.omniShadowMap.camera.getState().projection}, "omniShadowmap")
     }
@@ -122,9 +113,6 @@ export default class Scene{
             this.omniShadowMap.camera.setCamera(this.lights.getState().pointPosition, cameraRotations[i])
             this.programs.setShaderParams({uMatView: this.omniShadowMap.camera.getState().view}, "omniShadowmap")
             this.omniShadowMap.framebuffers[i].use()
-            /*if(i == 0){
-                this.useDefaultFramebuffer() 
-            }*/
             this.programs.clearAndDraw(objects, "omniShadowmap")
         }
     }

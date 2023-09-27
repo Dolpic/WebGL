@@ -7,7 +7,7 @@ export default class Objects{
         this.textureToCreate = []
     }
 
-    add(obj, name, position=[0,0,0], rotation=[0,0,0], scale=[1,1,1]){
+    add(obj, name, material, position=[0,0,0], rotation=[0,0,0], scale=[1,1,1]){
         // Note : is it possible to not repeat the points that are at the same place (ex : only 8 vertex for a cube) ?
         const converted = ModelHelper.modelToBuffers(obj)
         const vao = this.gl.createVertexArray()
@@ -20,7 +20,8 @@ export default class Objects{
             this.textureToCreate.push(obj.texture)
         }
         this.list[name] = {
-            name:name, 
+            name:name,
+            material: material,
             count:converted.count, 
             vao: vao,
             modelMatrix: Utils.createMatrix()
@@ -44,5 +45,9 @@ export default class Objects{
     
     setTransform(name, position=[0,0,0], rotation=[0,0,0], scale=[1,1,1]){
         Utils.transformMatrix(this.list[name].modelMatrix, position, rotation, scale)
+    }
+
+    setMaterial(name, material){
+        this.list[name].material = material
     }
 }
