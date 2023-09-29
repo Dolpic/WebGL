@@ -83,7 +83,7 @@
 
         function init(){
             getById("parameters").innerHTML = generateTabs("mainTab", [ ["View",""], ["Lights",""], ["Objects",""], ["Shaders",""]])
-            //getById("mainTab_View").style.display = "inline-block";
+            getById("mainTab_View").style.display = "inline-block";
             getById("mainTab").firstChild.classList.add("selectedTab")
 
             Shapes         = document.Shapes
