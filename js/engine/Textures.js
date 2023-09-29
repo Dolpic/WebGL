@@ -77,4 +77,14 @@ export default class Textures{
         }
        return tex
     }
+
+    createEmptyCubemap(size=512){
+      const tex = this._new(this.gl.TEXTURE_CUBE_MAP)
+      this.cubemapFaces.forEach(face => {
+        this.gl.texImage2D(face, 0, this.gl.RGBA, size, size, 0, this.gl.RGBA, this.gl.UNSIGNED_BYTE, null)
+      })
+      this.gl.texParameteri(this.gl.TEXTURE_CUBE_MAP, this.gl.TEXTURE_MAG_FILTER, this.gl.NEAREST)
+      this.gl.texParameteri(this.gl.TEXTURE_CUBE_MAP, this.gl.TEXTURE_MIN_FILTER, this.gl.NEAREST)
+      return tex
+    }
 }

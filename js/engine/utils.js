@@ -16,3 +16,7 @@ export function inverseMatrix(matrix){
 export function createMatrix(){
     return glMatrix.mat4.create()
 }
+
+export function getTranslation(mat){
+    return [mat[12], mat[13], mat[13]]
+}

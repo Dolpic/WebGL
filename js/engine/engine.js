@@ -14,8 +14,8 @@ export default class RenderingEngine{
         this.params.depth_test ? this.gl.enable(this.gl.DEPTH_TEST) : this.gl.disable(this.gl.DEPTH_TEST)
         this.gl.depthFunc(this.params.depth_test_function)
         
-        this.objects  = new Objects(this.gl)
         this.textures = new Textures(this.gl)
+        this.objects  = new Objects(this.gl, this.textures)
         
         const screenSize = {width:this.gl.canvas.clientWidth, height:this.gl.canvas.clientHeight}
         this.scene = new Scene(this.gl, screenSize, this.textures, this.params)
@@ -29,6 +29,7 @@ export default class RenderingEngine{
             specularColor:    [1,1,1],
             specularPower:    2.5,
             reflectionFactor: 0.1,
+            reflectionLevel: 0
         }
     }
     
@@ -53,8 +54,8 @@ export default class RenderingEngine{
         return this.scene.camera.getState()
     }
     
-    addObject(obj, name, material=undefined, position=[0,0,0], rotation=[0,0,0], scale=[1,1,1]){
-        this.objects.add(obj, name, material==null?this.defaultMaterial:material, position, rotation, scale)
+    addObject(obj, name, material=this.defaultMaterial, position=[0,0,0], rotation=[0,0,0], scale=[1,1,1]){
+        this.objects.add(obj, name, material, position, rotation, scale)
     }
     
     setViewProjection(view, projection=null){
@@ -68,6 +69,6 @@ export default class RenderingEngine{
     
     render() {
         this.scene.createTextures(this.objects.getTexturesToCreate())
-        this.scene.render(this.objects.list)
+        this.scene.render(this.objects)
     }
 }

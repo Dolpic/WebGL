@@ -80,7 +80,7 @@ export default class ProgramWrapper{
                     uLightPointSpecularColor: obj.material.specularColor,
                     uLightPointSpecularPower: obj.material.specularPower,
                     uReflectionFactor:        obj.material.reflectionFactor,
-                    //uReflectionIterations:    obj.material.reflectionIterations,
+                    uReflectionCubemap: obj.reflectionMap
                 })
             }
            

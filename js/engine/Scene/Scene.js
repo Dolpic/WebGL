@@ -43,7 +43,7 @@ export default class Scene{
 
     createTextures(textureList){
          // TODO now only one texture can be registered
-        textureList.forEach(t => this.createTexture(t, "uTexture"))
+        textureList.forEach(t => this.createTexture(t, "uTexture", true))
     }
 
     useDefaultFramebuffer(){
@@ -57,9 +57,9 @@ export default class Scene{
         this.programs.setShaderParams({uDirShadowMap: depthTexture})
         this.shadowMap = {
             texture : depthTexture.texture,
-            camera  : new Camera(() => {}, size),
             framebuffer : new Framebuffer(this.gl, size, depthTexture.texture),
-            lightMatrix : glMatrix.mat4.create()
+            lightMatrix : glMatrix.mat4.create(),
+            camera  : new Camera(() => {}, size),
         }
         this.shadowMap.camera.setOrthoProjection(-10, 10, -10, 10, 0.1, 200)
         this.programs.setShaderParams({uMatProjection: this.shadowMap.camera.getState().projection}, "dirShadowmap")
@@ -83,7 +83,6 @@ export default class Scene{
         this.programs.setShaderParams({uOmniShadowMap: depthTexture})
         this.omniShadowMap = {
             texture : depthTexture,
-            camera  : new Camera(() => {}, size),
             framebuffers :  [
                 new Framebuffer(this.gl, size, depthTexture.texture, this.gl.TEXTURE_CUBE_MAP_POSITIVE_X),
                 new Framebuffer(this.gl, size, depthTexture.texture, this.gl.TEXTURE_CUBE_MAP_NEGATIVE_X),
@@ -93,12 +92,20 @@ export default class Scene{
                 new Framebuffer(this.gl, size, depthTexture.texture, this.gl.TEXTURE_CUBE_MAP_NEGATIVE_Z),
             ]
         }
-        this.omniShadowMap.camera.setProjection(this.screenSize.width/this.screenSize.height, 90)
-        this.programs.setShaderParams({uMatProjection: this.omniShadowMap.camera.getState().projection}, "omniShadowmap")
     }
 
     renderOmniShadowMap(objects){
-        const cameraRotations = [
+        this.renderCubemap(this.lights.getState().pointPosition, this.omniShadowMap.framebuffers, objects, "omniShadowmap")
+    }
+
+    renderCubemap(position, frambuffers, objects, program="default"){
+        if(this.cubemapCamera == undefined){
+            this.cubemapCamera = new Camera(()=>{})
+            this.cubemapCamera.setProjection(this.params.shadow_map_size.width/this.params.shadow_map_size.height, 90)
+        }
+        this.programs.setShaderParams({uMatProjection: this.cubemapCamera.projection}, program)
+
+        const rotations = [
             [0, -90, 180],  
             [0, 90, 180],   
 
@@ -110,10 +117,10 @@ export default class Scene{
         ]
 
         for(let i=0; i<6; i++){
-            this.omniShadowMap.camera.setCamera(this.lights.getState().pointPosition, cameraRotations[i])
-            this.programs.setShaderParams({uMatView: this.omniShadowMap.camera.getState().view}, "omniShadowmap")
-            this.omniShadowMap.framebuffers[i].use()
-            this.programs.clearAndDraw(objects, "omniShadowmap")
+            this.cubemapCamera.setCamera(position, rotations[i])
+            this.programs.setShaderParams({uMatView: this.cubemapCamera.getState().view}, program)
+            frambuffers[i].use()
+            this.programs.clearAndDraw(objects, program)
         }
     }
 
@@ -133,7 +140,7 @@ export default class Scene{
         this.gl.vertexAttribPointer(positionLocation, 3, this.gl.FLOAT, false, 0, 0) 
         let cubemap = this.textures.createCubemap(folder)
         this.programs.setShaderParams({uCubemap: cubemap}, "skybox")
-        this.programs.setShaderParams({uReflectionCubemap: cubemap})
+        this.defaultReflectionCubemap = cubemap
     }
 
     renderSkybox(){
@@ -147,13 +154,31 @@ export default class Scene{
     render(objects){
         if(this.shadowMap != null){
             this.useShadowMap()
-            this.programs.clearAndDraw(objects, "dirShadowmap")
-            this.renderOmniShadowMap(objects)
+            this.programs.clearAndDraw(objects.getList(), "dirShadowmap")
+            this.renderOmniShadowMap(objects.getList())
+        }
+        
+        for(let i=0; objects.getObjectWithReflectionLevel(i) != undefined || i == 0; i++){
+            let objs = objects.getObjectWithReflectionLevel(i)
+            if(objs != undefined){
+                if(i == 0){
+                    objs.forEach(obj => {
+                        objects.useReflectionMap(obj.name, this.defaultReflectionCubemap)
+                    })
+                 }else{
+                    objs.forEach(obj => {
+                        this.renderCubemap(objects.getPosition(obj.name), objects.getReflectionFramebuffers(obj.name), objects.getList())
+                        objects.useReflectionMap(obj.name, obj.ownReflectionMap)
+                    })
+                }
+            
+            }
+        
         }
 
         if(!this.params.show_shadow_map){
             this.useDefaultFramebuffer()
-            this.programs.clearAndDraw(objects)
+            this.programs.clearAndDraw(objects.getList())
             if(this.skybox != null){
                 this.renderSkybox()
             }
