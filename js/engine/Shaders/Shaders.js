@@ -133,9 +133,9 @@ export default class Shaders{
         this.sw.addVertexOut(Types.vec4, "position", "iPosition")
         this.sw.addFragmentUniform(Types.mat4, "uViewProjection")
         this.sw.addFragmentUniform(Types.mat4, "uMatModel")
-        this.sw.addFragmentUniform(Types.cubemap, "uCubemap")
+        this.sw.addFragmentUniform(Types.cubemap, "uSkybox")
         this.sw.addFragmentContent("vec4 pos = inverse(uViewProjection)*position")
-        this.sw.addFragmentColorModifier("color = texture(uCubemap, pos.xzy/pos.w)")
+        this.sw.addFragmentColorModifier("color = texture(uSkybox, pos.xzy/pos.w)")
     }
 
     createShadowmap(){

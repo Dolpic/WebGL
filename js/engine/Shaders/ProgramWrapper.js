@@ -24,6 +24,9 @@ export default class ProgramWrapper{
             case "shadowmap":
                 this.generateShadowmap(shaders)
                 break
+            case "fullred":
+                this.generateDebugFullRed(shaders)
+                break
             default:
                 console.warn("Invalid shader type : "+shaders_type)
         }
@@ -56,9 +59,14 @@ export default class ProgramWrapper{
 
     generateShadowmap(shaders){
         shaders.createShadowmap()
-
     }
     
+    generateDebugFullRed(shaders){
+        let vao = shaders.createVAO()
+        shaders.createDefaultMatrices(vao.position, vao.normal)
+        shaders.createDebugFullRed()
+    }
+
     setShaderParams(params, program_name="default"){
         this.programs[program_name].shaders.setShaderParams(params)
     }
@@ -80,7 +88,7 @@ export default class ProgramWrapper{
                     uLightPointSpecularColor: obj.material.specularColor,
                     uLightPointSpecularPower: obj.material.specularPower,
                     uReflectionFactor:        obj.material.reflectionFactor,
-                    uReflectionCubemap: obj.reflectionMap
+                    uReflectionCubemap:       obj.reflectionMap
                 })
             }
            

@@ -30,11 +30,17 @@ export default class Textures{
 
     create(image, with_mipmap=true){
         const tex = this._new()
-        this.loadImage(image, img => {
+        if(image != null){
+          this.loadImage(image, img => {
             this.gl.activeTexture(this.gl[tex.id])
             this.gl.texImage2D(this.gl.TEXTURE_2D, 0, this.gl.RGBA, this.gl.RGBA, this.gl.UNSIGNED_BYTE, img)
             if(with_mipmap) this.gl.generateMipmap(this.gl.TEXTURE_2D)
-        })
+          })
+        }else{
+          this.gl.texImage2D(this.gl.TEXTURE_2D, 0, this.gl.RGBA, 512, 512, 0, this.gl.RGBA, this.gl.UNSIGNED_BYTE, null)
+          this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MAG_FILTER, this.gl.NEAREST)
+          this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MIN_FILTER, this.gl.NEAREST)
+        }
         return tex
     }
 
@@ -52,6 +58,20 @@ export default class Textures{
         return tex
     }
 
+    createEmptyCubemap(size=512){
+      const tex = this._new(this.gl.TEXTURE_CUBE_MAP)
+      const fill = new Uint8Array(4*size*size)
+      fill.fill(255)
+      this.cubemapFaces.forEach(face => {
+        this.gl.texImage2D(face, 0, this.gl.RGBA, size, size, 0, this.gl.RGBA, this.gl.UNSIGNED_BYTE, fill)
+      })
+      this.gl.texParameteri(this.gl.TEXTURE_CUBE_MAP, this.gl.TEXTURE_MAG_FILTER, this.gl.NEAREST)
+      this.gl.texParameteri(this.gl.TEXTURE_CUBE_MAP, this.gl.TEXTURE_MIN_FILTER, this.gl.NEAREST)
+      //this.gl.texParameteri(this.gl.TEXTURE_CUBE_MAP, this.gl.TEXTURE_MIN_FILTER, this.gl.LINEAR_MIPMAP_LINEAR)
+      //this.gl.generateMipmap(this.gl.TEXTURE_CUBE_MAP)
+      return tex
+    }
+
     createCubemap(folder, size=512){
         const tex = this._new(this.gl.TEXTURE_CUBE_MAP)
         let faces = [
@@ -62,29 +82,32 @@ export default class Textures{
           [this.cubemapFaces[4], "pz.png"],
           [this.cubemapFaces[5], "nz.png"]
         ]
-        let completed = 0
+
+        const tmpContent = new Uint8Array([0,0,0,0])
+        this.cubemapFaces.forEach(face => {
+          this.gl.texImage2D(face, 0, this.gl.RGBA, 1, 1, 0, this.gl.RGBA, this.gl.UNSIGNED_BYTE, tmpContent)
+        })
+        this.gl.texParameteri(this.gl.TEXTURE_CUBE_MAP, this.gl.TEXTURE_MAG_FILTER, this.gl.NEAREST)
+        this.gl.texParameteri(this.gl.TEXTURE_CUBE_MAP, this.gl.TEXTURE_MIN_FILTER, this.gl.NEAREST)
+
         if(folder != "ressources/cubemaps/null"){
-          faces.forEach(face => {
+          let completed = 0
+          let imgs = []
+          faces.forEach( (face,i) => {
             this.loadImage(folder+"/"+face[1], img => {
-              this.gl.bindTexture(this.gl.TEXTURE_CUBE_MAP, tex.texture)
-              this.gl.texImage2D(face[0], 0, this.gl.RGBA, size, size, 0, this.gl.RGBA, this.gl.UNSIGNED_BYTE, img)
+              imgs[i] = img
               if(++completed==6){
+
+                this.gl.bindTexture(this.gl.TEXTURE_CUBE_MAP, tex.texture)
+                imgs.forEach( (img,i) => {
+                  this.gl.texImage2D(faces[i][0], 0, this.gl.RGBA, size, size, 0, this.gl.RGBA, this.gl.UNSIGNED_BYTE, img)
+                })
                 this.gl.generateMipmap(this.gl.TEXTURE_CUBE_MAP)
                 this.gl.texParameteri(this.gl.TEXTURE_CUBE_MAP, this.gl.TEXTURE_MIN_FILTER, this.gl.LINEAR_MIPMAP_LINEAR)
               }
             })
           })
         }
-       return tex
-    }
-
-    createEmptyCubemap(size=512){
-      const tex = this._new(this.gl.TEXTURE_CUBE_MAP)
-      this.cubemapFaces.forEach(face => {
-        this.gl.texImage2D(face, 0, this.gl.RGBA, size, size, 0, this.gl.RGBA, this.gl.UNSIGNED_BYTE, null)
-      })
-      this.gl.texParameteri(this.gl.TEXTURE_CUBE_MAP, this.gl.TEXTURE_MAG_FILTER, this.gl.NEAREST)
-      this.gl.texParameteri(this.gl.TEXTURE_CUBE_MAP, this.gl.TEXTURE_MIN_FILTER, this.gl.NEAREST)
-      return tex
+        return tex
     }
 }

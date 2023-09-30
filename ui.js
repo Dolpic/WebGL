@@ -52,7 +52,7 @@ function updateObjectTab(obj_name, fromSliders){
                     specularColor:    [1,1,1],
                     specularPower:    getValue("SpecularFactor_"+obj_name),
                     reflectionFactor: getValue("ReflectionFactor_"+obj_name),
-                    reflectionLevel: 2
+                    reflectionLevel: 1
                 })
             }
         })
@@ -65,9 +65,6 @@ function updateObjectTab(obj_name, fromSliders){
             }
         })
     }
-
-
-    engine.scene.setMaterial(getValue("SpecularFactor"), getValue("ReflectionFactor"))
 }
 
 function generateViewTab(engine){

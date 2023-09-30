@@ -32,12 +32,12 @@ export default class Objects{
             vao: vao,
             modelMatrix: Utils.createMatrix(),
             reflectionFramebuffers:  [
-                new Framebuffer(this.gl, 512, reflectionMap.texture, this.gl.TEXTURE_CUBE_MAP_POSITIVE_X),
-                new Framebuffer(this.gl, 512, reflectionMap.texture, this.gl.TEXTURE_CUBE_MAP_NEGATIVE_X),
-                new Framebuffer(this.gl, 512, reflectionMap.texture, this.gl.TEXTURE_CUBE_MAP_POSITIVE_Y),
-                new Framebuffer(this.gl, 512, reflectionMap.texture, this.gl.TEXTURE_CUBE_MAP_NEGATIVE_Y),
-                new Framebuffer(this.gl, 512, reflectionMap.texture, this.gl.TEXTURE_CUBE_MAP_POSITIVE_Z),
-                new Framebuffer(this.gl, 512, reflectionMap.texture, this.gl.TEXTURE_CUBE_MAP_NEGATIVE_Z),
+                new Framebuffer(this.gl, 512, reflectionMap.texture, this.gl.COLOR_ATTACHMENT0, this.gl.TEXTURE_CUBE_MAP_POSITIVE_X),
+                new Framebuffer(this.gl, 512, reflectionMap.texture, this.gl.COLOR_ATTACHMENT0, this.gl.TEXTURE_CUBE_MAP_NEGATIVE_X),
+                new Framebuffer(this.gl, 512, reflectionMap.texture, this.gl.COLOR_ATTACHMENT0, this.gl.TEXTURE_CUBE_MAP_POSITIVE_Y),
+                new Framebuffer(this.gl, 512, reflectionMap.texture, this.gl.COLOR_ATTACHMENT0, this.gl.TEXTURE_CUBE_MAP_NEGATIVE_Y),
+                new Framebuffer(this.gl, 512, reflectionMap.texture, this.gl.COLOR_ATTACHMENT0, this.gl.TEXTURE_CUBE_MAP_POSITIVE_Z),
+                new Framebuffer(this.gl, 512, reflectionMap.texture, this.gl.COLOR_ATTACHMENT0, this.gl.TEXTURE_CUBE_MAP_NEGATIVE_Z),
             ],
             ownReflectionMap: reflectionMap,
             reflectionMap: undefined
@@ -57,11 +57,17 @@ export default class Objects{
             }
             this.objsByReflectionLevel[0].push(this.list[name])
         }
-        console.log(this.objsByReflectionLevel)
+        //console.log(this.objsByReflectionLevel)
     }
 
     getList(){
         return this.list
+    }
+
+    getListExcept(name){
+        let copy = {...this.list}
+        delete copy[name]
+        return copy
     }
 
     createBuffer(data, location, nbComponents, normalize=false){

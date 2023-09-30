@@ -18,5 +18,5 @@ export function createMatrix(){
 }
 
 export function getTranslation(mat){
-    return [mat[12], mat[13], mat[13]]
+    return [mat[12], mat[13], mat[14]]
 }
