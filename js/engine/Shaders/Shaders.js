@@ -55,7 +55,7 @@ export default class Shaders{
         this.sw.addFragmentUniform(Types.cubemap, "uReflectionCubemap")
         this.sw.addFragmentUniform(Types.float, "uReflectionFactor")
         this.sw.addVertexOut(Types.mat3, "uViewInverse3", `mat3(inverse(${matView}))`)
-        this.sw.addFragmentContent(`vec3 reflectionDir = normalize(vec4(reflect(  uViewInverse3*-${surfaceToCam}, normalize(uViewInverse3*${vNormal}) ), 1.0)).xzy`)
+        this.sw.addFragmentContent(`vec3 reflectionDir = normalize(vec4(reflect(  uViewInverse3*-${surfaceToCam}, normalize(uViewInverse3*${vNormal}) ), 1.0)).xyz`)
         this.sw.addFragmentColorModifier(`color = (1.0-uReflectionFactor)*color + uReflectionFactor*texture(uReflectionCubemap, reflectionDir)`)
     }
 
@@ -135,7 +135,7 @@ export default class Shaders{
         this.sw.addFragmentUniform(Types.mat4, "uMatModel")
         this.sw.addFragmentUniform(Types.cubemap, "uSkybox")
         this.sw.addFragmentContent("vec4 pos = inverse(uViewProjection)*position")
-        this.sw.addFragmentColorModifier("color = texture(uSkybox, pos.xzy/pos.w)")
+        this.sw.addFragmentColorModifier("color = texture(uSkybox, pos.xyz/pos.w)")
     }
 
     createShadowmap(){

@@ -43,7 +43,6 @@ export default class ProgramWrapper{
     generateDefaultShaders(shaders){
         let vao = shaders.createVAO()
         let mat = shaders.createDefaultMatrices(vao.position, vao.normal)
-        shaders.createReflection(mat.view, mat.vNormal, mat.surfaceToCam)
         shaders.createTexture()
         shaders.createAmbientLight()
         shaders.createDirectionalLight(mat.view3)
@@ -51,6 +50,7 @@ export default class ProgramWrapper{
         shaders.createConeLight(mat.view3)
         shaders.createDirectionalShadowMap(mat.modelPosition)
         shaders.createOmniShadowMap(pointLight.model_lightToSurface)
+        shaders.createReflection(mat.view, mat.vNormal, mat.surfaceToCam)
     }
 
     generateSkyBox(shaders){
@@ -72,8 +72,12 @@ export default class ProgramWrapper{
     }
 
     clearAndDraw(objects, program_name="default", mode=this.gl.TRIANGLES){
-        this.gl.clear(this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT)
+        this.clear()
         this.draw(objects, program_name, mode)
+    }
+
+    clear(){
+        this.gl.clear(this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT)
     }
 
     draw(objects, program_name="default", mode=this.gl.TRIANGLES){

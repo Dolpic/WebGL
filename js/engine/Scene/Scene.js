@@ -45,7 +45,7 @@ export default class Scene{
 
     createTextures(textureList){
          // TODO now only one texture can be registered
-        //textureList.forEach(t => this.createTexture(t, "uTexture", true))
+        textureList.forEach(t => this.createTexture(t, "uTexture", true))
     }
 
     useDefaultFramebuffer(){
@@ -59,7 +59,7 @@ export default class Scene{
         this.programs.setShaderParams({uDirShadowMap: depthTexture})
         this.shadowMap = {
             texture : depthTexture.texture,
-            framebuffer : new Framebuffer(this.gl, size, depthTexture.texture, this.gl.DEPTH_ATTACHMENT),
+            framebuffer : new Framebuffer(this.gl, size.width, size.height, depthTexture.texture, this.gl.DEPTH_ATTACHMENT),
             lightMatrix : glMatrix.mat4.create(),
             camera  : new Camera(() => {}, size),
         }
@@ -85,12 +85,12 @@ export default class Scene{
         this.programs.setShaderParams({uOmniShadowMap: depthTexture})
         this.omniShadowMap = {
             framebuffers :  [
-                new Framebuffer(this.gl, size, depthTexture.texture, this.gl.DEPTH_ATTACHMENT, this.gl.TEXTURE_CUBE_MAP_POSITIVE_X),
-                new Framebuffer(this.gl, size, depthTexture.texture, this.gl.DEPTH_ATTACHMENT, this.gl.TEXTURE_CUBE_MAP_NEGATIVE_X),
-                new Framebuffer(this.gl, size, depthTexture.texture, this.gl.DEPTH_ATTACHMENT, this.gl.TEXTURE_CUBE_MAP_POSITIVE_Y),
-                new Framebuffer(this.gl, size, depthTexture.texture, this.gl.DEPTH_ATTACHMENT, this.gl.TEXTURE_CUBE_MAP_NEGATIVE_Y),
-                new Framebuffer(this.gl, size, depthTexture.texture, this.gl.DEPTH_ATTACHMENT, this.gl.TEXTURE_CUBE_MAP_POSITIVE_Z),
-                new Framebuffer(this.gl, size, depthTexture.texture, this.gl.DEPTH_ATTACHMENT, this.gl.TEXTURE_CUBE_MAP_NEGATIVE_Z),
+                new Framebuffer(this.gl, size.width, size.height, depthTexture.texture, this.gl.DEPTH_ATTACHMENT, this.gl.TEXTURE_CUBE_MAP_POSITIVE_X),
+                new Framebuffer(this.gl, size.width, size.height, depthTexture.texture, this.gl.DEPTH_ATTACHMENT, this.gl.TEXTURE_CUBE_MAP_NEGATIVE_X),
+                new Framebuffer(this.gl, size.width, size.height, depthTexture.texture, this.gl.DEPTH_ATTACHMENT, this.gl.TEXTURE_CUBE_MAP_POSITIVE_Y),
+                new Framebuffer(this.gl, size.width, size.height, depthTexture.texture, this.gl.DEPTH_ATTACHMENT, this.gl.TEXTURE_CUBE_MAP_NEGATIVE_Y),
+                new Framebuffer(this.gl, size.width, size.height, depthTexture.texture, this.gl.DEPTH_ATTACHMENT, this.gl.TEXTURE_CUBE_MAP_POSITIVE_Z),
+                new Framebuffer(this.gl, size.width, size.height, depthTexture.texture, this.gl.DEPTH_ATTACHMENT, this.gl.TEXTURE_CUBE_MAP_NEGATIVE_Z),
             ]
         }
     }
@@ -120,11 +120,9 @@ export default class Scene{
             this.cubemapCamera.setCamera(position, rotations[i])
             this.programs.setShaderParams({uMatView: this.cubemapCamera.getState().view}, program)
             framebuffers[i].use()
-            /*if(i == 1){
-                this.useDefaultFramebuffer()
-            }*/
-            //this.programs.clearAndDraw(objects, program)
+            this.programs.clear()
             this.renderSkybox(this.cubemapCamera)
+            this.programs.draw(objects, program)
         }
     }
 
@@ -157,7 +155,7 @@ export default class Scene{
 
     render(objects){
         for(const obj_name in objects.getList()){
-            objects.useReflectionMap(obj_name, this.defaultReflectionCubemap)
+            //objects.useReflectionMap(obj_name, this.defaultReflectionCubemap)
         }
 
         if(this.shadowMap != null){
@@ -170,6 +168,7 @@ export default class Scene{
             let objs = objects.getObjectWithReflectionLevel(i)
             if(objs != undefined){
                 objs.forEach(obj => {
+                    //console.log("Rendering "+obj.name+" pass "+i)
                     this.renderCubemap(
                         objects.getPosition(obj.name), 
                         objects.getReflectionFramebuffers(obj.name), 
@@ -180,27 +179,10 @@ export default class Scene{
             }
         }
 
-        if(this.tex == undefined){
-            this.placeholder =  this.textures.create(null)
-            this.tex = this.textures.create(null)
-            this.fb = new Framebuffer(this.gl, 512, this.tex.texture)
-            this.cam = new Camera(()=>{})
-        }
-        this.programs.setShaderParams({uTexture: this.placeholder})
-        this.cam.setProjection(1,90)
-        this.cam.setCamera([0,0,-5], [180, 0, 0], )
-        this.programs.setShaderParams({uMatView: this.cam.getState().view})
-        this.programs.setShaderParams({uMatProjection: this.cam.getState().projection})
-        this.fb.use()
-        this.programs.clearAndDraw(objects.getList())
-        this.renderSkybox(this.cam)
-        
-
         if(!this.params.show_shadow_map){
             this.programs.setShaderParams({uMatView: this.camera.getState().view})
             this.programs.setShaderParams({uMatProjection: this.camera.getState().projection})
             this.useDefaultFramebuffer()
-            this.programs.setShaderParams({uTexture: this.tex})
             this.programs.clearAndDraw(objects.getList())
             if(this.skybox != null){
                 this.renderSkybox()

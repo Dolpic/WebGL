@@ -4,12 +4,13 @@
         <link rel="stylesheet" href="style.css">
         <script src="js/utils.js"></script>
         <script src="js/ModelHelper.js"></script>
-        <script src="ui.js"></script>
         <script type="module">
-            import Engine  from "./js/engine/engine.js"
-            import Shapes  from "./ressources/shapes/module.js"
+            import Engine from "./js/engine/engine.js"
+            import Shapes from "./ressources/shapes/module.js"
+            import UI from "./ui.js"
             document.Engine  = Engine
             document.Shapes  = Shapes
+            document.UI = UI
         </script>
     </head>
     <body onload="init();start()">
@@ -68,7 +69,7 @@
                     <li>One cone light, casting directional shadows in orthographic perspective</li>
                     <li>A skybox</li>
                     <li>Textures, for now only one for the whole scene</li>
-                    <li>Reflective material, reflecting the skybox only (for now !)</li>
+                    <li>Reflective material, able to reflect the other objects in the scene, with an arbitrary number of reflection iterations (2 by default)</li>
                     <li>A few models, with parameters to change their transform and material (see Objects tab)</li>
                 </ul>
             <p>
@@ -88,6 +89,7 @@
 
             Shapes         = document.Shapes
             Engine         = document.Engine
+            UI             = document.UI
             updateInterval = 30
             previousTime   = 0
             frameNumber    = 0
@@ -124,7 +126,7 @@
             ]
 
             engine = new Engine(getById("canvas"), params)
-            engine.addObject(Shapes.Plane, "Ground")
+            engine.addObject(Shapes.Plane, "Ground", [0,0,-0.1])
             //engine.addObject(Shapes.Plane, "WallX", [-10,0,10], [0,90,0])
             //engine.addObject(Shapes.Plane, "WallY", [0,-10,10], [90,0,0])
             //engine.addObject(Shapes.Cube, "Cube_1", engine.defaultMaterial, [0,-2,1], [0,0,0], [2,2,2])
@@ -136,13 +138,10 @@
 
             engine.setSkybox("ressources/cubemaps/"+skybox)
 
-            generateViewTab(engine)
-            generateLightsTab()
-            ModelHelper.loadWavefronts(wavefronts, engine).then( () => generateObjectsTab(engine.objects.list))
-            generateShadersTab()
-
-            updateViewTab(true)
-            updateLightsTab()
+            UI.generateViewTab(engine)
+            UI.generateLightsTab()
+            ModelHelper.loadWavefronts(wavefronts, engine).then( () => UI.generateObjectsTab(engine.objects.list))
+            UI.generateShadersTab()
 
             render(0)
         }
@@ -180,7 +179,7 @@
                 default:
                     return
             }
-            ModelHelper.loadWavefronts([model], engine).then( () => generateObjectsTab(engine.objects.list))
+            ModelHelper.loadWavefronts([model], engine).then( () => UI.generateObjectsTab(engine.objects.list))
         }
     </script>  
 </html>

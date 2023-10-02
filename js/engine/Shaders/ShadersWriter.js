@@ -59,7 +59,7 @@ export default class ShadersWriter{
                     this.gl.activeTexture(this.gl[params[entry].id])
                     this.gl.bindTexture(params[entry].type, params[entry].texture)
                     this.gl.uniform1i(this.gl.getUniformLocation(this.program, entry), params[entry].number)
-                    console.log("Texture unit "+params[entry].number+"("+params[entry].id+") is bond to "+entry)
+                    //console.log("Texture unit "+params[entry].number+"("+params[entry].id+") is bond to "+entry)
                     continue
                 default:
                     console.warn("Parameter of unknown type : "+uniforms[entry])

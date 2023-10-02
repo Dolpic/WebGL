@@ -1,6 +1,6 @@
-import Objects from "./Objects.js"
+import Objects  from "./Objects.js"
 import Textures from "./Textures.js"
-import Scene from "./Scene/Scene.js"
+import Scene    from "./Scene/Scene.js"
 
 export default class RenderingEngine{
     constructor(canvas, params={}){
@@ -29,7 +29,7 @@ export default class RenderingEngine{
             specularColor:    [1,1,1],
             specularPower:    2.5,
             reflectionFactor: 0.1,
-            reflectionLevel: 1
+            reflectionLevel:  2
         }
     }
     
@@ -56,11 +56,6 @@ export default class RenderingEngine{
     
     addObject(obj, name, material=this.defaultMaterial, position=[0,0,0], rotation=[0,0,0], scale=[1,1,1]){
         this.objects.add(obj, name, material, position, rotation, scale)
-    }
-    
-    setViewProjection(view, projection=null){
-        this.mainScene.camera.setMatrixView(view)
-        if(projection != null) this.mainScene.camera.setMatrixProjection(projection)
     }
     
     setSkybox(folder){

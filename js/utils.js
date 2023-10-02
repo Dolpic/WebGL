@@ -5,13 +5,6 @@ function getTransformSlidersValues(id){
         [getValue(id+"_SX"), getValue(id+"_SY"), getValue(id+"_SZ")]
     ]
 }
-function generateTransformSliders(id, changeCallback, values=[[0,0,0],[0,0,0],[1,1,1]]){
-    return (
-        generateSliders(id+"_T",  ["X","Y","Z"], -100,  100, "Translation", values[0], changeCallback) +
-        generateSliders(id+"_R",  ["X","Y","Z"], -180,  180, "Rotation",    values[1], changeCallback) +
-        generateSliders(id+"_S",  ["X","Y","Z"], 0.001, 5,   "Scale",       values[2], changeCallback)
-    )
-}
 
 function getMatrixValues(id){
     return getById(id+"_matrix").querySelectorAll("input").map(e => parseFloat(e.value))
@@ -41,19 +34,20 @@ function generateTabs(tabName, names_content){
     return result + `</div>`
 }
 
-function generateSliders(prefix, suffixes, min, max, title, default_values=null, on_input_func="", step=0.0001){
+/*function generateSliders(prefix, suffixes, min, max, title, default_values=null, on_input_func="", step=0.0001){
     let result = `<span>${title}</span><table>`
     suffixes.forEach( (e,i) =>{
-        let id = prefix+e
-        let value = default_values == null ? (max+min)/2 : default_values[i]
-        let id_value = id+"_value"
-        let on_input = `getById('${id_value}').innerHTML = parseFloat(getById('${id}').value).toFixed(2);${on_input_func}`
-        result += `
-        <tr>
-            <td>${e}</td>
-            <td><input oninput="${on_input}" type="range" id="${id}" value="${value}" min="${min}" max="${max}" step="${step}"/></td>
-            <td id="${id_value}">${value.toFixed(2)}</td>
-        </tr>`
+        let value = default_values==null?(max+min)/2:default_values[i]
+        result += "<tr><td>"+generateSlider(prefix, e, value, min, max, step, on_input_func)+"</td></tr>"
     })
     return result + "</table><hr>"
 }
+
+function generateSlider(name, id, value, min, max, step, oninput){
+    let oninput_full = `getById('${id}_value').innerHTML = parseFloat(getById('${id}').value).toFixed(2);${oninput}`
+    return `<table><tr>
+        <td>${name}</td>
+        <td><input oninput="${oninput_full}" type="range" id="${id}" value="${value}" min="${min}" max="${max}" step="${step}"/></td>
+        <td id="${id}_value">${value.toFixed(2)}</td>
+    </tr></table> `
+}*/

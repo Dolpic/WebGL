@@ -27,17 +27,17 @@ export default class Objects{
 
         this.list[name] = {
             name:name,
-            material: material,
+            material: {...material},
             count:converted.count, 
             vao: vao,
             modelMatrix: Utils.createMatrix(),
             reflectionFramebuffers:  [
-                new Framebuffer(this.gl, 512, reflectionMap.texture, this.gl.COLOR_ATTACHMENT0, this.gl.TEXTURE_CUBE_MAP_POSITIVE_X),
-                new Framebuffer(this.gl, 512, reflectionMap.texture, this.gl.COLOR_ATTACHMENT0, this.gl.TEXTURE_CUBE_MAP_NEGATIVE_X),
-                new Framebuffer(this.gl, 512, reflectionMap.texture, this.gl.COLOR_ATTACHMENT0, this.gl.TEXTURE_CUBE_MAP_POSITIVE_Y),
-                new Framebuffer(this.gl, 512, reflectionMap.texture, this.gl.COLOR_ATTACHMENT0, this.gl.TEXTURE_CUBE_MAP_NEGATIVE_Y),
-                new Framebuffer(this.gl, 512, reflectionMap.texture, this.gl.COLOR_ATTACHMENT0, this.gl.TEXTURE_CUBE_MAP_POSITIVE_Z),
-                new Framebuffer(this.gl, 512, reflectionMap.texture, this.gl.COLOR_ATTACHMENT0, this.gl.TEXTURE_CUBE_MAP_NEGATIVE_Z),
+                new Framebuffer(this.gl, 512, 512,reflectionMap.texture, this.gl.COLOR_ATTACHMENT0, this.gl.TEXTURE_CUBE_MAP_POSITIVE_X),
+                new Framebuffer(this.gl, 512, 512,reflectionMap.texture, this.gl.COLOR_ATTACHMENT0, this.gl.TEXTURE_CUBE_MAP_NEGATIVE_X),
+                new Framebuffer(this.gl, 512, 512,reflectionMap.texture, this.gl.COLOR_ATTACHMENT0, this.gl.TEXTURE_CUBE_MAP_POSITIVE_Y),
+                new Framebuffer(this.gl, 512, 512,reflectionMap.texture, this.gl.COLOR_ATTACHMENT0, this.gl.TEXTURE_CUBE_MAP_NEGATIVE_Y),
+                new Framebuffer(this.gl, 512, 512,reflectionMap.texture, this.gl.COLOR_ATTACHMENT0, this.gl.TEXTURE_CUBE_MAP_POSITIVE_Z),
+                new Framebuffer(this.gl, 512, 512,reflectionMap.texture, this.gl.COLOR_ATTACHMENT0, this.gl.TEXTURE_CUBE_MAP_NEGATIVE_Z),
             ],
             ownReflectionMap: reflectionMap,
             reflectionMap: undefined
@@ -88,12 +88,18 @@ export default class Objects{
         return Utils.getTranslation(this.list[name].modelMatrix)
     }
     
-    setTransform(name, position=[0,0,0], rotation=[0,0,0], scale=[1,1,1]){
+    setTransform(name, position=null, rotation=null, scale=null){
+        position=position==null?this.getPosition(name):position
+        rotation=rotation==null?this.getRotation(name):rotation
+        scale=scale==null?this.getScale(name):scale
         Utils.transformMatrix(this.list[name].modelMatrix, position, rotation, scale)
     }
 
-    setMaterial(name, material){
-        this.list[name].material = material
+    updateMaterial(name, properties){
+        for(let entry in properties){
+            this.list[name].material[entry] = properties[entry]
+        }
+        console.log(this.list)
     }
 
     getReflectionFramebuffers(name){
