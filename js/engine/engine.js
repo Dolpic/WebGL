@@ -54,8 +54,14 @@ export default class RenderingEngine{
         return this.scene.camera.getState()
     }
     
-    addObject(obj, name, material=this.defaultMaterial, position=[0,0,0], rotation=[0,0,0], scale=[1,1,1]){
-        this.objects.add(obj, name, material, position, rotation, scale)
+    addObject(obj, name, position=[0,0,0], rotation=[0,0,0], scale=[1,1,1], material=null){
+        let mat = {...this.defaultMaterial}
+        if(material != null){
+            for(let prop in material){
+                mat[prop] = material[prop]
+            }
+        }
+        this.objects.add(obj, name, mat, position, rotation, scale)
     }
     
     setSkybox(folder){

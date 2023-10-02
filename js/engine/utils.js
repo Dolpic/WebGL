@@ -20,3 +20,16 @@ export function createMatrix(){
 export function getTranslation(mat){
     return [mat[12], mat[13], mat[14]]
 }
+
+export function getTransform(mat){
+    let translation = []
+    let q = []
+    let scale = []
+    glMatrix.mat4.decompose(q, translation, scale, mat)
+
+    let rotx = (180/Math.PI)* Math.atan2(2*(q[3]*q[0] + q[1]*q[2]), 1-2*(q[0]*q[0]+q[1]*q[1]))
+    let roty = (180/Math.PI)* Math.asin(2*(q[3]*q[1] - q[0]*q[3]))
+    let rotz = (180/Math.PI)* Math.atan2(2*(q[3]*q[0] + q[0]*q[1]), 1-2*(q[1]*q[1]+q[2]*q[2]))
+
+    return {translation:translation, rotation:[rotx,roty,rotz], scale:scale}
+}

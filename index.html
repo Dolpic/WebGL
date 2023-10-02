@@ -95,21 +95,7 @@
             frameNumber    = 0
             engine         = null
             needRestart    = false
-            skybox         = getValue("skybox_select")
             params         = {}
-        }
-
-        function getDepthFunction(){
-            switch(getValue("depth_func")){
-                case "NEVER"    : return WebGL2RenderingContext.NEVER 
-                case "ALWAYS"   : return WebGL2RenderingContext.ALWAYS 
-                case "LESS"     : return WebGL2RenderingContext.LESS 
-                case "EQUAL"    : return WebGL2RenderingContext.EQUAL 
-                case "LEQUAL"   : return WebGL2RenderingContext.LEQUAL 
-                case "GREATER"  : return WebGL2RenderingContext.GREATER 
-                case "GEQUAL"   : return WebGL2RenderingContext.GEQUAL 
-                case "NOTEQUAL" : return WebGL2RenderingContext.NOTEQUAL 
-            }
         }
 
         function restart(){
@@ -119,14 +105,18 @@
 
         function start(){
             needRestart = false
-            params.depth_test_function = getDepthFunction()
+            params.depth_test_function = WebGL2RenderingContext[getValue("depth_func")]
 
             const wavefronts = [
-                ["Dragon", "dragon/dragon_simple2.obj"]
+                ["Dragon", "dragon/dragon_simple2.obj", [2,0,0]],
+                ["Teapot", "teapot/teapot_simple.obj", 
+                    [-9.5, 4.3, 0.4], [0, 0.6, -90], [3.5,3.5,3.5],
+                    {reflectionFactor: 0.45}
+                ]
             ]
 
             engine = new Engine(getById("canvas"), params)
-            engine.addObject(Shapes.Plane, "Ground", [0,0,-0.1])
+            engine.addObject(Shapes.Plane, "Ground", [-4,-1,-0.3], [0,0,0], [1.2, 1.2, 1.2])
             //engine.addObject(Shapes.Plane, "WallX", [-10,0,10], [0,90,0])
             //engine.addObject(Shapes.Plane, "WallY", [0,-10,10], [90,0,0])
             //engine.addObject(Shapes.Cube, "Cube_1", engine.defaultMaterial, [0,-2,1], [0,0,0], [2,2,2])
@@ -136,7 +126,7 @@
             //ModelHelper.loadWavefront("dragon/dragon.obj", "").then(obj => engine.addObject(obj, "Dragon"))
             //ModelHelper.loadWavefront("gizmo/gizmo.obj", "").then(obj => engine.addObject(obj, "Gizmo"))
 
-            engine.setSkybox("ressources/cubemaps/"+skybox)
+            engine.setSkybox("ressources/cubemaps/"+getValue("skybox_select"))
 
             UI.generateViewTab(engine)
             UI.generateLightsTab()

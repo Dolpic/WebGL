@@ -32,8 +32,6 @@ export default class Scene{
 
         this.shadowMap   = null
         this.skybox      = null
-
-        this.programs.createProgram("debug", "fullred")
     }
 
     createTexture(image, location, with_mipmap){
@@ -127,14 +125,10 @@ export default class Scene{
     }
 
     setSkybox(folder){
-        this.programs.createProgram("skybox", "skybox")
-        this.skybox = {
-            vao :        this.gl.createVertexArray(),
-            name:        "skybox", 
-            count:       6, 
-            modelMatrix: Utils.createMatrix()
-        }
-        this.gl.bindVertexArray(this.skybox.vao)
+        let program = "skybox"
+        this.programs.createProgram(program, program)
+        let vao = this.gl.createVertexArray()
+        this.gl.bindVertexArray(vao)
         this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.gl.createBuffer())
         this.gl.bufferData(this.gl.ARRAY_BUFFER, new Float32Array([-1,1,1, 1,1,1, -1,-1,1, 1,1,1, 1,-1,1, -1,-1,1]), this.gl.STATIC_DRAW)
         const positionLocation = 0
@@ -142,20 +136,20 @@ export default class Scene{
         this.gl.vertexAttribPointer(positionLocation, 3, this.gl.FLOAT, false, 0, 0) 
         const tex = this.textures.createCubemap(folder)
         this.programs.setShaderParams({uSkybox: tex}, "skybox")
-        this.defaultReflectionCubemap = tex
+        this.skybox = {vao:vao, count:6, modelMatrix:Utils.createMatrix(), texture:tex, program:program}
     }
 
     renderSkybox(camera=this.camera){
         let viewProjection = glMatrix.mat4.create()
         let cameraState = camera.getState()
         glMatrix.mat4.multiply(viewProjection, cameraState.projection, cameraState.view)
-        this.programs.setShaderParams({uViewProjection: viewProjection}, "skybox")
-        this.programs.draw([this.skybox], "skybox")
+        this.programs.setShaderParams({uViewProjection: viewProjection}, this.skybox.program)
+        this.programs.draw({"skybox":this.skybox}, this.skybox.program)
     }
 
     render(objects){
         for(const obj_name in objects.getList()){
-            //objects.useReflectionMap(obj_name, this.defaultReflectionCubemap)
+            objects.useReflectionMap(obj_name, this.skybox.texture)
         }
 
         if(this.shadowMap != null){
@@ -168,7 +162,6 @@ export default class Scene{
             let objs = objects.getObjectWithReflectionLevel(i)
             if(objs != undefined){
                 objs.forEach(obj => {
-                    //console.log("Rendering "+obj.name+" pass "+i)
                     this.renderCubemap(
                         objects.getPosition(obj.name), 
                         objects.getReflectionFramebuffers(obj.name), 

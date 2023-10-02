@@ -1,11 +1,3 @@
-function getTransformSlidersValues(id){
-    return [
-        [getValue(id+"_TX"), getValue(id+"_TY"), getValue(id+"_TZ")], 
-        [getValue(id+"_RX"), getValue(id+"_RY"), getValue(id+"_RZ")], 
-        [getValue(id+"_SX"), getValue(id+"_SY"), getValue(id+"_SZ")]
-    ]
-}
-
 function getMatrixValues(id){
     return getById(id+"_matrix").querySelectorAll("input").map(e => parseFloat(e.value))
 }
@@ -33,21 +25,3 @@ function generateTabs(tabName, names_content){
     names_content.forEach(e => result += `<div id="${tabName}_${e[0]}">${e[1]}</div>`)
     return result + `</div>`
 }
-
-/*function generateSliders(prefix, suffixes, min, max, title, default_values=null, on_input_func="", step=0.0001){
-    let result = `<span>${title}</span><table>`
-    suffixes.forEach( (e,i) =>{
-        let value = default_values==null?(max+min)/2:default_values[i]
-        result += "<tr><td>"+generateSlider(prefix, e, value, min, max, step, on_input_func)+"</td></tr>"
-    })
-    return result + "</table><hr>"
-}
-
-function generateSlider(name, id, value, min, max, step, oninput){
-    let oninput_full = `getById('${id}_value').innerHTML = parseFloat(getById('${id}').value).toFixed(2);${oninput}`
-    return `<table><tr>
-        <td>${name}</td>
-        <td><input oninput="${oninput_full}" type="range" id="${id}" value="${value}" min="${min}" max="${max}" step="${step}"/></td>
-        <td id="${id}_value">${value.toFixed(2)}</td>
-    </tr></table> `
-}*/

@@ -83,10 +83,6 @@ export default class Objects{
         this.textureToCreate = []
         return tmp
     }
-
-    getPosition(name){
-        return Utils.getTranslation(this.list[name].modelMatrix)
-    }
     
     setTransform(name, position=null, rotation=null, scale=null){
         position=position==null?this.getPosition(name):position
@@ -95,11 +91,22 @@ export default class Objects{
         Utils.transformMatrix(this.list[name].modelMatrix, position, rotation, scale)
     }
 
+    getPosition(name){
+        return Utils.getTranslation(this.list[name].modelMatrix)
+    }
+
+    getTransform(name){
+        return Utils.getTransform(this.list[name].modelMatrix)
+    }
+
     updateMaterial(name, properties){
         for(let entry in properties){
             this.list[name].material[entry] = properties[entry]
         }
-        console.log(this.list)
+    }
+
+    getMaterial(name){
+        return this.list[name].material
     }
 
     getReflectionFramebuffers(name){

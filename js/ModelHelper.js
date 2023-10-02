@@ -1,7 +1,7 @@
 class ModelHelper{
-    static async loadWavefront(obj_file_link, mtl_file_link=""){
+    static async loadWavefront(obj_file, mtl_file=""){
         const utf8Decoder = new TextDecoder("utf-8")
-        const response = await fetch("ressources/models/"+obj_file_link)
+        const response = await fetch("ressources/models/"+obj_file)
         const reader = response.body.getReader()
         let content = ""
         let {value: chunk, done:done } = await reader.read()
@@ -39,9 +39,9 @@ class ModelHelper{
 
     static async loadWavefronts(list, engine){
         let promises = []
-        list.forEach(entry => {
-            promises.push(this.loadWavefront(entry[1], "").then(obj => engine.addObject(obj, entry[0])))
-        })
+        list.forEach(entry => promises.push(
+            this.loadWavefront(entry[1], "").then(obj => engine.addObject(obj, entry[0], entry[2], entry[3], entry[4], entry[5]))
+        ))
         return Promise.all(promises)
     }
 
