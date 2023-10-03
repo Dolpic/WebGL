@@ -39,9 +39,23 @@ class ModelHelper{
 
     static async loadWavefronts(list, engine){
         let promises = []
-        list.forEach(entry => promises.push(
-            this.loadWavefront(entry[1], "").then(obj => engine.addObject(obj, entry[0], entry[2], entry[3], entry[4], entry[5]))
-        ))
+        list.forEach(entry => {
+            let name = entry.name
+            if(engine.objects.list[name] != undefined){
+                for(let i=2; engine.objects.list[name] != undefined; i++){
+                    name = entry.name+i
+                }
+            }
+            promises.push(this.loadWavefront(entry.file, "").then(obj => engine.objects.add(
+                obj, 
+                name, 
+                entry.material ?? {}, 
+                entry.transform!=null?entry.transform[0]:[0,0,0], 
+                entry.transform!=null?entry.transform[1]:[0,0,0], 
+                entry.transform!=null?entry.transform[2]:[1,1,1]
+                )
+            ))
+        })
         return Promise.all(promises)
     }
 

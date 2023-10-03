@@ -99,7 +99,7 @@
         }
 
         function restart(){
-            console.log("Restarting...")
+            console.info("Restarting...")
             needRestart = true
         }
 
@@ -107,24 +107,26 @@
             needRestart = false
             params.depth_test_function = WebGL2RenderingContext[getValue("depth_func")]
 
-            const wavefronts = [
-                ["Dragon", "dragon/dragon_simple2.obj", [2,0,0]],
-                ["Teapot", "teapot/teapot_simple.obj", 
-                    [-9.5, 4.3, 0.4], [0, 0.6, -90], [3.5,3.5,3.5],
-                    {reflectionFactor: 0.45}
-                ]
-            ]
+            const wavefronts = [{
+                    name:"Dragon", 
+                    file:"dragon/dragon_simple2.obj", 
+                    transform: [[2,0,0], [0,0,0], [1,1,1]],
+                    material: {}
+                },{
+                    name:"Teapot", 
+                    file:"teapot/teapot_simple.obj", 
+                    transform:[[-9.5, 4.3, 0.4], [0, 0.6, -90], [3.5,3.5,3.5]],
+                    material:{reflectionFactor: 0.45}
+            }]
 
             engine = new Engine(getById("canvas"), params)
-            engine.addObject(Shapes.Plane, "Ground", [-4,-1,-0.3], [0,0,0], [1.2, 1.2, 1.2])
+            engine.objects.add(Shapes.Plane, "Ground", {}, [-4,-1,-0.3], [0,0,0], [1.2, 1.2, 1.2])
             //engine.addObject(Shapes.Plane, "WallX", [-10,0,10], [0,90,0])
             //engine.addObject(Shapes.Plane, "WallY", [0,-10,10], [90,0,0])
             //engine.addObject(Shapes.Cube, "Cube_1", engine.defaultMaterial, [0,-2,1], [0,0,0], [2,2,2])
             /*engine.addObject(Shapes.Cube, "Cube_2", [2,0,1])
             engine.addObject(Shapes.Cube, "Cube_3", [0,-2,2])
             engine.addObject(Shapes.Cube, "Cube_4", [-2,0,1])*/
-            //ModelHelper.loadWavefront("dragon/dragon.obj", "").then(obj => engine.addObject(obj, "Dragon"))
-            //ModelHelper.loadWavefront("gizmo/gizmo.obj", "").then(obj => engine.addObject(obj, "Gizmo"))
 
             engine.setSkybox("ressources/cubemaps/"+getValue("skybox_select"))
 
@@ -140,12 +142,10 @@
             frameNumber++
             const deltaTime = currentTime - previousTime
             previousTime = currentTime
-
             if(frameNumber % updateInterval == 0){
                 getById("fps").innerHTML = Math.round(1000/deltaTime)
                 getById("refresh_rate").innerHTML = Math.round(deltaTime)+" ms"
             }
-
             engine.render()
             needRestart ? start() : requestAnimationFrame(render)
         }
@@ -155,16 +155,16 @@
             let model = null
             switch (model_id) {
                 case 1 :
-                    model = ["Dragon", "dragon/dragon_simple2.obj"]
+                    model = {name:"Dragon", file:"dragon/dragon_simple2.obj"}
                     break
                 case 2 :
-                    model = ["Teapot", "teapot/teapot_simple.obj"]
+                    model = {name:"Teapot", file:"teapot/teapot_simple.obj"}
                     break
                 case 3 :
-                    model = ["Suzanne", "suzanne/suzanne_simple.obj"]
+                    model = {name:"Suzanne", file:"suzanne/suzanne_simple.obj"}
                     break
                 case 4 :
-                    model = ["Gizmo", "gizmo/gizmo.obj"]
+                    model = {name:"Gizmo", file:"gizmo/gizmo.obj"}
                     break
                 default:
                     return

@@ -2,7 +2,6 @@ import "../gl-matrix.js"
 import * as Utils from "../utils.js"
 import Camera from "./Camera.js"
 import Lights from "./Lights.js"
-import Framebuffer from "./Framebuffer.js"
 import ProgramWrapper from "../Shaders/ProgramWrapper.js"
 
 export default class Scene{
@@ -29,15 +28,26 @@ export default class Scene{
             uLightConePosition:  state.conePosition,
             uLightConeDir:       state.coneDir
         }))
-
         this.shadowMap   = null
         this.skybox      = null
+
+        let size = this.params.cubemap_size
+        this.cubemap = {
+            camera:new Camera(()=>{}, size.width/size.height, [0,0,0], [0,0,0], [1,1,1], 90),
+            rotations : [
+                [0, -90, 180],  
+                [0, 90, 180],   
+                [90, 0, 0],  
+                [-90, 0, 0],
+                [180, 0, 0], 
+                [0, 0, 180], 
+            ]
+        }
     }
 
     createTexture(image, location, with_mipmap){
-        const tex = this.textures.create(image, with_mipmap)
         let params = {}
-        params[location] = tex
+        params[location] = this.textures.create(image, with_mipmap)
         this.programs.setShaderParams(params)
     }
 
@@ -53,15 +63,13 @@ export default class Scene{
 
     createShadowMap(size){
         this.programs.createProgram("dirShadowmap", "shadowmap")
-        const depthTexture = this.textures.createDepthTexture(size)
-        this.programs.setShaderParams({uDirShadowMap: depthTexture})
         this.shadowMap = {
-            texture : depthTexture.texture,
-            framebuffer : new Framebuffer(this.gl, size.width, size.height, depthTexture.texture, this.gl.DEPTH_ATTACHMENT),
+            texture:      this.textures.createDepthTexture(size),
             lightMatrix : glMatrix.mat4.create(),
-            camera  : new Camera(() => {}, size),
+            camera:       new Camera(() => {}, size.width/size.height),
         }
         this.shadowMap.camera.setOrthoProjection(-10, 10, -10, 10, 0.1, 200)
+        this.programs.setShaderParams({uDirShadowMap: this.shadowMap.texture})
         this.programs.setShaderParams({uMatProjection: this.shadowMap.camera.getState().projection}, "dirShadowmap")
     }
 
@@ -72,25 +80,16 @@ export default class Scene{
         Utils.transformMatrix(this.shadowMap.lightMatrix, [0.5,0.5,0.5], [0,0,0], [0.5,0.5,0.5])
         glMatrix.mat4.multiply(this.shadowMap.lightMatrix, this.shadowMap.lightMatrix, camMatrices.projection)
         glMatrix.mat4.multiply(this.shadowMap.lightMatrix, this.shadowMap.lightMatrix, camMatrices.view)
-        this.params.show_shadow_map ? this.useDefaultFramebuffer() : this.shadowMap.framebuffer.use() 
+        this.params.show_shadow_map ? this.useDefaultFramebuffer() : this.shadowMap.texture.framebuffer.use() 
         this.programs.setShaderParams({uMatView: camMatrices.view}, "dirShadowmap")
         this.programs.setShaderParams({uMatDirShadowMap: this.shadowMap.lightMatrix})
     }
 
     createOmniShadowMap(size){
         this.programs.createProgram("omniShadowmap", "shadowmap")
-        const depthTexture = this.textures.createDepthTexture(size, this.gl.TEXTURE_CUBE_MAP)
-        this.programs.setShaderParams({uOmniShadowMap: depthTexture})
-        this.omniShadowMap = {
-            framebuffers :  [
-                new Framebuffer(this.gl, size.width, size.height, depthTexture.texture, this.gl.DEPTH_ATTACHMENT, this.gl.TEXTURE_CUBE_MAP_POSITIVE_X),
-                new Framebuffer(this.gl, size.width, size.height, depthTexture.texture, this.gl.DEPTH_ATTACHMENT, this.gl.TEXTURE_CUBE_MAP_NEGATIVE_X),
-                new Framebuffer(this.gl, size.width, size.height, depthTexture.texture, this.gl.DEPTH_ATTACHMENT, this.gl.TEXTURE_CUBE_MAP_POSITIVE_Y),
-                new Framebuffer(this.gl, size.width, size.height, depthTexture.texture, this.gl.DEPTH_ATTACHMENT, this.gl.TEXTURE_CUBE_MAP_NEGATIVE_Y),
-                new Framebuffer(this.gl, size.width, size.height, depthTexture.texture, this.gl.DEPTH_ATTACHMENT, this.gl.TEXTURE_CUBE_MAP_POSITIVE_Z),
-                new Framebuffer(this.gl, size.width, size.height, depthTexture.texture, this.gl.DEPTH_ATTACHMENT, this.gl.TEXTURE_CUBE_MAP_NEGATIVE_Z),
-            ]
-        }
+        // TODO Unify size as int and as {width, height}
+        this.omniShadowMap = this.textures.createEmptyCubemap(size.width, "depth")
+        this.programs.setShaderParams({uOmniShadowMap: this.omniShadowMap})
     }
 
     renderOmniShadowMap(objects){
@@ -98,28 +97,13 @@ export default class Scene{
     }
 
     renderCubemap(position, framebuffers, objects, program="default"){
-        if(this.cubemapCamera == undefined){
-            this.cubemapCamera = new Camera(()=>{})
-            this.cubemapCamera.setProjection(this.params.shadow_map_size.width/this.params.shadow_map_size.height, 90)
-        }
-        this.programs.setShaderParams({uMatProjection: this.cubemapCamera.getState().projection}, program)
-
-        const rotations = [
-            [0, -90, 180],  
-            [0, 90, 180],   
-
-            [90, 0, 0], 
-            [90, 180, 180],
-
-            [180, 0, 0], 
-            [0, 0, 180], 
-        ]
+        this.programs.setShaderParams({uMatProjection: this.cubemap.camera.getState().projection}, program)
         for(let i=0; i<6; i++){
-            this.cubemapCamera.setCamera(position, rotations[i])
-            this.programs.setShaderParams({uMatView: this.cubemapCamera.getState().view}, program)
+            this.cubemap.camera.setCamera(position, this.cubemap.rotations[i])
+            this.programs.setShaderParams({uMatView: this.cubemap.camera.getState().view}, program)
             framebuffers[i].use()
             this.programs.clear()
-            this.renderSkybox(this.cubemapCamera)
+            this.renderSkybox(this.cubemap.camera)
             this.programs.draw(objects, program)
         }
     }
@@ -167,7 +151,7 @@ export default class Scene{
                         objects.getReflectionFramebuffers(obj.name), 
                         objects.getListExcept(obj.name),
                     )
-                    objects.useReflectionMap(obj.name, obj.ownReflectionMap)
+                    objects.useReflectionMap(obj.name, obj.cubemap)
                 })
             }
         }

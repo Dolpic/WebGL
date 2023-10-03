@@ -13,23 +13,23 @@ export default class RenderingEngine{
         
         this.params.depth_test ? this.gl.enable(this.gl.DEPTH_TEST) : this.gl.disable(this.gl.DEPTH_TEST)
         this.gl.depthFunc(this.params.depth_test_function)
-        
-        this.textures = new Textures(this.gl)
-        this.objects  = new Objects(this.gl, this.textures)
-        
-        const screenSize = {width:this.gl.canvas.clientWidth, height:this.gl.canvas.clientHeight}
-        this.scene = new Scene(this.gl, screenSize, this.textures, this.params)
-
-        if(this.params.with_shadow_map){
-            this.scene.createShadowMap(this.params.shadow_map_size)
-            this.scene.createOmniShadowMap(this.params.shadow_map_size)
-        }
 
         this.defaultMaterial = {
             specularColor:    [1,1,1],
             specularPower:    2.5,
             reflectionFactor: 0.1,
             reflectionLevel:  2
+        }
+
+        this.textures = new Textures(this.gl)
+        this.objects  = new Objects(this.gl, this.textures, this)
+        
+        const screenSize = {width:this.gl.canvas.clientWidth, height:this.gl.canvas.clientHeight}
+        this.scene = new Scene(this.gl, screenSize, this.textures, this.params)
+
+        if(this.params.with_shadow_map){
+            this.scene.createShadowMap(this.params.cubemap_size)
+            this.scene.createOmniShadowMap(this.params.cubemap_size)
         }
     }
     
@@ -42,7 +42,7 @@ export default class RenderingEngine{
             "clear_depth": 1.0,
             "with_shadow_map" : true,
             "show_shadow_map" : false,
-            "shadow_map_size" : {width:512, height:512}
+            "cubemap_size" : {width:512, height:512}
         }
         for(const prop in defaults){
             result[prop] = params.hasOwnProperty(prop) ? params[prop] : defaults[prop]
@@ -52,16 +52,6 @@ export default class RenderingEngine{
     
     getViewProjection(){
         return this.scene.camera.getState()
-    }
-    
-    addObject(obj, name, position=[0,0,0], rotation=[0,0,0], scale=[1,1,1], material=null){
-        let mat = {...this.defaultMaterial}
-        if(material != null){
-            for(let prop in material){
-                mat[prop] = material[prop]
-            }
-        }
-        this.objects.add(obj, name, mat, position, rotation, scale)
     }
     
     setSkybox(folder){

@@ -2,15 +2,21 @@ import * as Utils from "./utils.js"
 import Framebuffer from "./Scene/Framebuffer.js"
 
 export default class Objects{
-    constructor(glContext, textures){
+    constructor(glContext, textures, engine){
         this.gl = glContext
         this.list = {}
+        this.defaultMaterial = engine.defaultMaterial
         this.textures = textures
         this.textureToCreate = []
         this.objsByReflectionLevel = {}
     }
 
     add(obj, name, material, position=[0,0,0], rotation=[0,0,0], scale=[1,1,1]){
+        if(this.list[name] != undefined){
+            console.warn(`Object "${name}" already exists`)
+            return
+        }
+
         // Note : is it possible to not repeat the points that are at the same place (ex : only 8 vertex for a cube) ?
         const converted = ModelHelper.modelToBuffers(obj)
         const vao = this.gl.createVertexArray()
@@ -23,28 +29,25 @@ export default class Objects{
             this.textureToCreate.push(obj.texture)
         }
 
-        const reflectionMap = this.textures.createEmptyCubemap()
+        let mat = {...this.defaultMaterial}
+        if(material != null){
+            for(let prop in material){
+                mat[prop] = material[prop]
+            }
+        }
 
         this.list[name] = {
             name:name,
-            material: {...material},
+            material: mat,
             count:converted.count, 
             vao: vao,
             modelMatrix: Utils.createMatrix(),
-            reflectionFramebuffers:  [
-                new Framebuffer(this.gl, 512, 512,reflectionMap.texture, this.gl.COLOR_ATTACHMENT0, this.gl.TEXTURE_CUBE_MAP_POSITIVE_X),
-                new Framebuffer(this.gl, 512, 512,reflectionMap.texture, this.gl.COLOR_ATTACHMENT0, this.gl.TEXTURE_CUBE_MAP_NEGATIVE_X),
-                new Framebuffer(this.gl, 512, 512,reflectionMap.texture, this.gl.COLOR_ATTACHMENT0, this.gl.TEXTURE_CUBE_MAP_POSITIVE_Y),
-                new Framebuffer(this.gl, 512, 512,reflectionMap.texture, this.gl.COLOR_ATTACHMENT0, this.gl.TEXTURE_CUBE_MAP_NEGATIVE_Y),
-                new Framebuffer(this.gl, 512, 512,reflectionMap.texture, this.gl.COLOR_ATTACHMENT0, this.gl.TEXTURE_CUBE_MAP_POSITIVE_Z),
-                new Framebuffer(this.gl, 512, 512,reflectionMap.texture, this.gl.COLOR_ATTACHMENT0, this.gl.TEXTURE_CUBE_MAP_NEGATIVE_Z),
-            ],
-            ownReflectionMap: reflectionMap,
+            cubemap: this.textures.createEmptyCubemap(),
             reflectionMap: undefined
         }
         this.setTransform(name, position, rotation, scale)
-        if(material.reflectionLevel != undefined && material.reflectionLevel != 0){
-            for(let i=material.reflectionLevel; i>0; i--){
+        if(mat.reflectionLevel != undefined && mat.reflectionLevel != 0){
+            for(let i=mat.reflectionLevel; i>0; i--){
                 if(this.objsByReflectionLevel[i] == undefined){
                     this.objsByReflectionLevel[i] = []
                 }
@@ -110,7 +113,7 @@ export default class Objects{
     }
 
     getReflectionFramebuffers(name){
-        return this.list[name].reflectionFramebuffers
+        return this.list[name].cubemap.framebuffers
     }
 
     getObjectWithReflectionLevel(level){
