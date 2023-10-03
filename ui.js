@@ -48,7 +48,10 @@ export default class UI {
             new Slider(obj.name+"_material", "Specular",         material.specularPower,   val=>engine.objects.updateMaterial(obj.name, {specularPower:val}),    0, 5)
             UI.generateTransformSliders(
                 obj.name+"_transform_sliders", 
-                val=>engine.objects.setTransform(obj.name, val.position, val.rotation, val.scale), 
+                val=>{
+                    engine.objects.setTransform(obj.name, val.position, val.rotation, val.scale)
+                    setMatrixValues(obj.name, obj.modelMatrix)
+                }, 
                 [transform.translation,transform.rotation,transform.scale]
             )
         })
