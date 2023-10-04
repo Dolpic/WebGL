@@ -1,6 +1,8 @@
 import Objects  from "./Objects.js"
 import Textures from "./Textures.js"
 import Scene    from "./Scene/Scene.js"
+import Skybox from "./Skybox.js"
+import ProgramWrapper from "./Shaders/ProgramWrapper.js"
 
 export default class RenderingEngine{
     constructor(canvas, params={}){
@@ -21,11 +23,17 @@ export default class RenderingEngine{
             reflectionLevel:  2
         }
 
+        this.programs = new ProgramWrapper(this.gl)
         this.textures = new Textures(this.gl)
-        this.objects  = new Objects(this.gl, this.textures, this)
+        this.skybox   = null
+        this.objects  = new Objects(this.gl, this.textures, this, obj => {
+            if(this.skybox != null){
+                this.objects.useReflectionMap(obj.name, this.skybox.texture)
+            }
+        })
         
         const screenSize = {width:this.gl.canvas.clientWidth, height:this.gl.canvas.clientHeight}
-        this.scene = new Scene(this.gl, screenSize, this.textures, this.params)
+        this.scene = new Scene(this.gl, screenSize, this.programs, this.textures, this.params)
 
         if(this.params.with_shadow_map){
             this.scene.createShadowMap(this.params.cubemap_size)
@@ -55,11 +63,14 @@ export default class RenderingEngine{
     }
     
     setSkybox(folder){
-        this.scene.setSkybox(folder)
+        this.skybox = new Skybox(this.gl, this.programs, this.textures, folder)
+        for(const obj_name in this.objects.getList()){
+            this.objects.useReflectionMap(obj_name, this.skybox.texture)
+        }
     }
     
     render() {
         this.scene.createTextures(this.objects.getTexturesToCreate())
-        this.scene.render(this.objects)
+        this.scene.render(this.objects, this.skybox)
     }
 }

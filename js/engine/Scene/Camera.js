@@ -6,18 +6,21 @@ export default class Camera{
         this.onchange   = onchange
         this.view       = glMatrix.mat4.create()
         this.projection = glMatrix.mat4.create()
+        this.viewProjection = glMatrix.mat4.create()
         this.setProjection(aspectRatio, fov, zNear, zFar)
         this.setView(position, rotation, scale)
     }
 
     getState(){
         return {
-            view:     this.view, 
-            projection:this.projection
+            view:      this.view, 
+            projection:this.projection,
+            viewProjection: this.viewProjection
         }
     }
 
     update(){
+        glMatrix.mat4.multiply(this.viewProjection, this.projection, this.view)
         this.onchange(this.getState())
     }
     

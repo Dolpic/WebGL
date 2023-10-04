@@ -1,14 +1,14 @@
 import * as Utils from "./utils.js"
-import Framebuffer from "./Scene/Framebuffer.js"
 
 export default class Objects{
-    constructor(glContext, textures, engine){
+    constructor(glContext, textures, engine, onadd){
         this.gl = glContext
         this.list = {}
         this.defaultMaterial = engine.defaultMaterial
         this.textures = textures
         this.textureToCreate = []
         this.objsByReflectionLevel = {}
+        this.onadd = onadd
     }
 
     add(obj, name, material, position=[0,0,0], rotation=[0,0,0], scale=[1,1,1]){
@@ -61,6 +61,8 @@ export default class Objects{
             this.objsByReflectionLevel[0].push(this.list[name])
         }
         //console.log(this.objsByReflectionLevel)
+
+        this.onadd(this.list[name])
     }
 
     getList(){

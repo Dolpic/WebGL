@@ -2,16 +2,14 @@ import "../gl-matrix.js"
 import * as Utils from "../utils.js"
 import Camera from "./Camera.js"
 import Lights from "./Lights.js"
-import ProgramWrapper from "../Shaders/ProgramWrapper.js"
 
 export default class Scene{
-    constructor(glContext, screenSize, textures, params){
+    constructor(glContext, screenSize, programs, textures, params){
         this.gl         = glContext
         this.screenSize = screenSize
         this.params     = params
-
-        this.textures = textures
-        this.programs = new ProgramWrapper(glContext)
+        this.programs   = programs
+        this.textures   = textures
         
         this.camera = new Camera(state => this.programs.setShaderParams({
             uMatView:       state.view,
@@ -29,7 +27,6 @@ export default class Scene{
             uLightConeDir:       state.coneDir
         }))
         this.shadowMap   = null
-        this.skybox      = null
 
         let size = this.params.cubemap_size
         this.cubemap = {
@@ -93,49 +90,24 @@ export default class Scene{
     }
 
     renderOmniShadowMap(objects){
-        this.renderCubemap(this.lights.getState().pointPosition, this.omniShadowMap.framebuffers, objects, "omniShadowmap")
+        this.renderCubemap(this.lights.getState().pointPosition, this.omniShadowMap.framebuffers, objects, null, "omniShadowmap")
     }
 
-    renderCubemap(position, framebuffers, objects, program="default"){
+    renderCubemap(position, framebuffers, objects, skybox=null, program="default"){
         this.programs.setShaderParams({uMatProjection: this.cubemap.camera.getState().projection}, program)
         for(let i=0; i<6; i++){
             this.cubemap.camera.setCamera(position, this.cubemap.rotations[i])
             this.programs.setShaderParams({uMatView: this.cubemap.camera.getState().view}, program)
             framebuffers[i].use()
             this.programs.clear()
-            this.renderSkybox(this.cubemap.camera)
+            if(skybox != null){
+                skybox.render(this.cubemap.camera)
+            }
             this.programs.draw(objects, program)
         }
     }
 
-    setSkybox(folder){
-        let program = "skybox"
-        this.programs.createProgram(program, program)
-        let vao = this.gl.createVertexArray()
-        this.gl.bindVertexArray(vao)
-        this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.gl.createBuffer())
-        this.gl.bufferData(this.gl.ARRAY_BUFFER, new Float32Array([-1,1,1, 1,1,1, -1,-1,1, 1,1,1, 1,-1,1, -1,-1,1]), this.gl.STATIC_DRAW)
-        const positionLocation = 0
-        this.gl.enableVertexAttribArray(positionLocation)
-        this.gl.vertexAttribPointer(positionLocation, 3, this.gl.FLOAT, false, 0, 0) 
-        const tex = this.textures.createCubemap(folder)
-        this.programs.setShaderParams({uSkybox: tex}, "skybox")
-        this.skybox = {vao:vao, count:6, modelMatrix:Utils.createMatrix(), texture:tex, program:program}
-    }
-
-    renderSkybox(camera=this.camera){
-        let viewProjection = glMatrix.mat4.create()
-        let cameraState = camera.getState()
-        glMatrix.mat4.multiply(viewProjection, cameraState.projection, cameraState.view)
-        this.programs.setShaderParams({uViewProjection: viewProjection}, this.skybox.program)
-        this.programs.draw({"skybox":this.skybox}, this.skybox.program)
-    }
-
-    render(objects){
-        for(const obj_name in objects.getList()){
-            objects.useReflectionMap(obj_name, this.skybox.texture)
-        }
-
+    render(objects, skybox=null){
         if(this.shadowMap != null){
             this.useShadowMap()
             this.programs.clearAndDraw(objects.getList(), "dirShadowmap")
@@ -150,6 +122,7 @@ export default class Scene{
                         objects.getPosition(obj.name), 
                         objects.getReflectionFramebuffers(obj.name), 
                         objects.getListExcept(obj.name),
+                        skybox
                     )
                     objects.useReflectionMap(obj.name, obj.cubemap)
                 })
@@ -161,8 +134,8 @@ export default class Scene{
             this.programs.setShaderParams({uMatProjection: this.camera.getState().projection})
             this.useDefaultFramebuffer()
             this.programs.clearAndDraw(objects.getList())
-            if(this.skybox != null){
-                this.renderSkybox()
+            if(skybox != null){
+                skybox.render(this.camera)
             }
         }
     }
