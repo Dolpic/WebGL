@@ -29,16 +29,9 @@ export default class Objects{
             this.textureToCreate.push(obj.texture)
         }
 
-        let mat = {...this.defaultMaterial}
-        if(material != null){
-            for(let prop in material){
-                mat[prop] = material[prop]
-            }
-        }
-
         this.list[name] = {
             name:name,
-            material: mat,
+            material: {...this.defaultMaterial},
             count:converted.count, 
             vao: vao,
             modelMatrix: Utils.createMatrix(),
@@ -46,21 +39,7 @@ export default class Objects{
             reflectionMap: undefined
         }
         this.setTransform(name, position, rotation, scale)
-        if(mat.reflectionLevel != undefined && mat.reflectionLevel != 0){
-            for(let i=mat.reflectionLevel; i>0; i--){
-                if(this.objsByReflectionLevel[i] == undefined){
-                    this.objsByReflectionLevel[i] = []
-                }
-                this.objsByReflectionLevel[i].push(this.list[name])
-            }
-            
-        }else{
-            if(this.objsByReflectionLevel[0] == undefined){
-                this.objsByReflectionLevel[0] = []
-            }
-            this.objsByReflectionLevel[0].push(this.list[name])
-        }
-        //console.log(this.objsByReflectionLevel)
+        this.updateMaterial(name, material)
 
         this.onadd(this.list[name])
     }
@@ -104,9 +83,23 @@ export default class Objects{
         return Utils.getTransform(this.list[name].modelMatrix)
     }
 
-    updateMaterial(name, properties){
-        for(let entry in properties){
-            this.list[name].material[entry] = properties[entry]
+    updateMaterial(name, material){
+        for(let entry in material){
+            this.list[name].material[entry] = material[entry]
+        }
+        this.onadd(this.list[name])
+
+        this.objsByReflectionLevel = []
+        for(let current_name in this.list){
+            let level = this.list[current_name].material.reflectionLevel
+            if(level != undefined && level >= 1){
+                for(let i=level; i>0; i--){
+                    if(this.objsByReflectionLevel[i] == undefined){
+                        this.objsByReflectionLevel[i] = []
+                    }
+                    this.objsByReflectionLevel[i].push(this.list[current_name])
+                }
+            }
         }
     }
 

@@ -20,7 +20,7 @@ export default class RenderingEngine{
             specularColor:    [1,1,1],
             specularPower:    2.5,
             reflectionFactor: 0.1,
-            reflectionLevel:  2
+            reflectionLevel:  0
         }
 
         this.programs = new ProgramWrapper(this.gl)
@@ -28,7 +28,7 @@ export default class RenderingEngine{
         this.skybox   = null
         this.objects  = new Objects(this.gl, this.textures, this, obj => {
             if(this.skybox != null){
-                this.objects.useReflectionMap(obj.name, this.skybox.texture)
+                this.objects.useReflectionMap(obj.name, this.skybox.skybox.texture)
             }
         })
         
@@ -65,7 +65,7 @@ export default class RenderingEngine{
     setSkybox(folder){
         this.skybox = new Skybox(this.gl, this.programs, this.textures, folder)
         for(const obj_name in this.objects.getList()){
-            this.objects.useReflectionMap(obj_name, this.skybox.texture)
+            this.objects.useReflectionMap(obj_name, this.skybox.skybox.texture)
         }
     }
     

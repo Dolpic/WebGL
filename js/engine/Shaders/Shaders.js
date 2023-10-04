@@ -56,7 +56,7 @@ export default class Shaders{
         this.sw.addFragmentUniform(Types.float, "uReflectionFactor")
         this.sw.addVertexOut(Types.mat3, "uViewInverse3", `mat3(inverse(${matView}))`)
         this.sw.addFragmentContent(`vec3 reflectionDir = normalize(vec4(reflect(  uViewInverse3*-${surfaceToCam}, normalize(uViewInverse3*${vNormal}) ), 1.0)).xyz`)
-        this.sw.addFragmentColorModifier(`color = (1.0-uReflectionFactor)*color + uReflectionFactor*texture(uReflectionCubemap, reflectionDir)`)
+        this.sw.addFragmentColorModifier(`color = (1.0-uReflectionFactor)*color + uReflectionFactor*texture(uReflectionCubemap, reflectionDir.xzy)`)
     }
 
     createAmbientLight(){

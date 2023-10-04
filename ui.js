@@ -44,8 +44,10 @@ export default class UI {
         Object.values(objs).forEach(obj => {
             let material = engine.objects.getMaterial(obj.name)
             let transform = engine.objects.getTransform(obj.name)
-            new Slider(obj.name+"_material", "Reflectionfactor", material.reflectionFactor, val=>engine.objects.updateMaterial(obj.name, {reflectionFactor:val}), 0, 1)
-            new Slider(obj.name+"_material", "Specular",         material.specularPower,   val=>engine.objects.updateMaterial(obj.name, {specularPower:val}),    0, 5)
+            new Slider(obj.name+"_material", "Reflectionfactor",     material.reflectionFactor, val=>engine.objects.updateMaterial(obj.name, {reflectionFactor:val}), 0, 1)
+            new Slider(obj.name+"_material", "ReflectionIterations", material.reflectionLevel,  val=>engine.objects.updateMaterial(obj.name, {reflectionLevel:val}),  0, 5, 1)
+            new Slider(obj.name+"_material", "Specular",             material.specularPower,    val=>engine.objects.updateMaterial(obj.name, {specularPower:val}),    0, 5)
+            
             UI.generateTransformSliders(
                 obj.name+"_transform_sliders", 
                 val=>{
