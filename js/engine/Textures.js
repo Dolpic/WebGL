@@ -15,6 +15,13 @@ export default class Textures{
         ]
     }
 
+    _textureNearestClamp(type){
+      this.gl.texParameteri(type, this.gl.TEXTURE_MAG_FILTER, this.gl.NEAREST)
+      this.gl.texParameteri(type, this.gl.TEXTURE_MIN_FILTER, this.gl.NEAREST)
+      this.gl.texParameteri(type, this.gl.TEXTURE_WRAP_S, this.gl.CLAMP_TO_EDGE)
+      this.gl.texParameteri(type, this.gl.TEXTURE_WRAP_T, this.gl.CLAMP_TO_EDGE)
+    }
+
     loadImage(src, callback){
         let img = new Image()
         img.src = src
@@ -40,8 +47,7 @@ export default class Textures{
           })
         }else{
           this.gl.texImage2D(this.gl.TEXTURE_2D, 0, this.gl.RGBA, 512, 512, 0, this.gl.RGBA, this.gl.UNSIGNED_BYTE, null)
-          this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MAG_FILTER, this.gl.NEAREST)
-          this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MIN_FILTER, this.gl.NEAREST)
+          this._textureNearestClamp(this.gl.TEXTURE_2D)
         }
         return tex
     }
@@ -49,8 +55,7 @@ export default class Textures{
     createDepthTexture(size){
         const tex = this._new(this.gl.TEXTURE_2D)
         this.gl.texImage2D(this.gl.TEXTURE_2D, 0, this.gl.DEPTH_COMPONENT32F, size.width, size.height, 0, this.gl.DEPTH_COMPONENT, this.gl.FLOAT, null)
-        this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MAG_FILTER, this.gl.NEAREST)
-        this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MIN_FILTER, this.gl.NEAREST)
+        this._textureNearestClamp(this.gl.TEXTURE_2D)
         tex.framebuffer = new Framebuffer(this.gl, size.width, size.height, tex.texture, this.gl.DEPTH_ATTACHMENT)
         return tex
     }
@@ -69,8 +74,7 @@ export default class Textures{
           console.error("Invalid cubemap type : "+type)
         }
       })
-      this.gl.texParameteri(this.gl.TEXTURE_CUBE_MAP, this.gl.TEXTURE_MAG_FILTER, this.gl.NEAREST)
-      this.gl.texParameteri(this.gl.TEXTURE_CUBE_MAP, this.gl.TEXTURE_MIN_FILTER, this.gl.NEAREST)
+      this._textureNearestClamp(this.gl.TEXTURE_CUBE_MAP)
       return tex
     }
 
@@ -89,8 +93,7 @@ export default class Textures{
         this.cubemapFaces.forEach(face => {
           this.gl.texImage2D(face, 0, this.gl.RGBA, 1, 1, 0, this.gl.RGBA, this.gl.UNSIGNED_BYTE, tmpContent)
         })
-        this.gl.texParameteri(this.gl.TEXTURE_CUBE_MAP, this.gl.TEXTURE_MAG_FILTER, this.gl.NEAREST)
-        this.gl.texParameteri(this.gl.TEXTURE_CUBE_MAP, this.gl.TEXTURE_MIN_FILTER, this.gl.NEAREST)
+        this._textureNearestClamp(this.gl.TEXTURE_CUBE_MAP)
 
         if(folder != "ressources/cubemaps/null"){
           let completed = 0

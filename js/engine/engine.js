@@ -20,7 +20,7 @@ export default class RenderingEngine{
             specularColor:    [1,1,1],
             specularPower:    2.5,
             reflectionFactor: 0.1,
-            reflectionLevel:  0
+            reflectionLevel:  1
         }
 
         this.programs = new ProgramWrapper(this.gl)
