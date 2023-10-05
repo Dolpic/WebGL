@@ -120,7 +120,7 @@
             }]
 
             engine = new Engine(getById("canvas"), params)
-            engine.objects.add(Shapes.Plane, "Ground", {}, [-4,-1,-0.3], [0,0,0], [1.2, 1.2, 1.2])
+            engine.objects.add(Shapes.Plane, "Ground", {reflectionFactor: 0}, [-4,-1,-0.3], [0,0,0], [1.2, 1.2, 1.2])
             //engine.addObject(Shapes.Plane, "WallX", [-10,0,10], [0,90,0])
             //engine.addObject(Shapes.Plane, "WallY", [0,-10,10], [90,0,0])
             //engine.addObject(Shapes.Cube, "Cube_1", engine.defaultMaterial, [0,-2,1], [0,0,0], [2,2,2])
