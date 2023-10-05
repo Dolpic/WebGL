@@ -37,7 +37,7 @@ export default class Scene{
                 [90, 0, 0],  
                 [-90, 0, 0],
                 [180, 0, 0], 
-                [0, 0, 180], 
+                [0, 0, 180],
             ]
         }
     }
@@ -114,6 +114,13 @@ export default class Scene{
             this.renderOmniShadowMap(objects.getList())
         }
 
+        for(let name in objects.getList()){
+            let fbs = objects.getReflectionFramebuffers(name)
+            for(let i=0; i<6; i++){
+                fbs[i].use()
+                this.programs.clear()
+            }
+        }
         for(let i=1; objects.getObjectWithReflectionLevel(i) != undefined; i++){
             let objs = objects.getObjectWithReflectionLevel(i)
             if(objs != undefined){

@@ -37,6 +37,8 @@ export default class UI {
                 <option value="2">Utah Teapot</option>
                 <option value="3">Suzanne (blender)</option>  
                 <option value="4">Gizmo</option>  
+                <option value="5">Sphere</option>  
+                <option value="6">Cube</option>  
             </select>
             <button onclick="addModel()">Add</button>
             <hr>` + generateTabs("objectsTab", names_content)
