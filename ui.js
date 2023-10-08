@@ -68,7 +68,7 @@ export default class UI {
         UI.generateTransformSliders("view_sliders", vals=>{
             engine.scene.camera.setView(vals.position,vals.rotation,vals.scale)
             setMatrixValues("view", engine.scene.camera.getState().view)
-        }, [[0,-1.5,-26],[-71,0,-120],[1,1,1]]) 
+        }, [[0,-1.5,-33],[-71,0,-120],[1,1,1]]) 
     }
     
     static generateLightsTab(){

@@ -51,6 +51,10 @@ export default class Shaders{
         this.sw.addFragmentColorModifier("color *= texture(uTexture, vTextureCoord)")
     }
 
+    createNormalMap(){
+        this.sw.addVertexAttribute(Types.vec3, "iBinormal")
+    }
+
     createReflection(matView, vNormal, surfaceToCam){
         this.sw.addFragmentUniform(Types.cubemap, "uReflectionCubemap")
         this.sw.addFragmentUniform(Types.float, "uReflectionFactor")
