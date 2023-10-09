@@ -92,7 +92,8 @@ export default class Objects{
         this.objsByReflectionLevel = []
         for(let current_name in this.list){
             let level = this.list[current_name].material.reflectionLevel
-            if(level != undefined && level >= 1){
+            let reflectionFactor = this.list[current_name].material.reflectionFactor
+            if(level != undefined && level >= 1 && reflectionFactor > 0){
                 for(let i=level; i>0; i--){
                     if(this.objsByReflectionLevel[i] == undefined){
                         this.objsByReflectionLevel[i] = []

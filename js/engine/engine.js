@@ -19,7 +19,7 @@ export default class RenderingEngine{
         this.defaultMaterial = {
             specularColor:    [1,1,1],
             specularPower:    2.5,
-            reflectionFactor: 0.1,
+            reflectionFactor: 0,
             reflectionLevel:  1
         }
 
@@ -44,13 +44,13 @@ export default class RenderingEngine{
     setDefaultParams(params){
         let result = {}
         let defaults = {
-            "depth_test": true,
+            "depth_test":          true,
             "depth_test_function": WebGL2RenderingContext.LEQUAL,
-            "clear_color": [0.0, 0.0, 0.0, 1.0],
-            "clear_depth": 1.0,
-            "with_shadow_map" : true,
-            "show_shadow_map" : false,
-            "texture_size" : {width:512, height:512}
+            "clear_color":         [0.0, 0.0, 0.0, 1.0],
+            "clear_depth":         1.0,
+            "with_shadow_map":     true,
+            "show_shadow_map":     false,
+            "texture_size":        {width:800, height:800}
         }
         for(const prop in defaults){
             result[prop] = params.hasOwnProperty(prop) ? params[prop] : defaults[prop]

@@ -84,7 +84,6 @@ export default class Scene{
 
     createOmniShadowMap(size=this.params.texture_size){
         this.programs.createProgram("omniShadowmap", "shadowmap")
-        // TODO Unify size as int and as {width, height}
         this.omniShadowMap = this.textures.createEmptyCubemap(size, "depth")
         this.programs.setShaderParams({uOmniShadowMap: this.omniShadowMap})
     }
