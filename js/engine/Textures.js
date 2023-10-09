@@ -1,7 +1,8 @@
 import Framebuffer from "./Scene/Framebuffer.js"
 
 export default class Textures{
-    constructor(glContext){
+    constructor(glContext, params){
+        this.params = params
         this.gl = glContext
         this.texture_counter = 0
 
@@ -37,7 +38,7 @@ export default class Textures{
         return {texture:texture, id:id, number:this.texture_counter-1, type:type}
     }
 
-    create(image, with_mipmap=true){
+    create(image, with_mipmap=true, size=this.params.texture_size){
         const tex = this._new()
         if(image != null){
           this.loadImage(image, img => {
@@ -46,30 +47,30 @@ export default class Textures{
             if(with_mipmap) this.gl.generateMipmap(this.gl.TEXTURE_2D)
           })
         }else{
-          this.gl.texImage2D(this.gl.TEXTURE_2D, 0, this.gl.RGBA, 512, 512, 0, this.gl.RGBA, this.gl.UNSIGNED_BYTE, null)
+          this.gl.texImage2D(this.gl.TEXTURE_2D, 0, this.gl.RGBA, size.width, size.height, 0, this.gl.RGBA, this.gl.UNSIGNED_BYTE, null)
           this._textureNearestClamp(this.gl.TEXTURE_2D)
         }
         return tex
     }
 
-    createDepthTexture(size){
+    createDepthTexture(size=this.params.texture_size){
         const tex = this._new(this.gl.TEXTURE_2D)
         this.gl.texImage2D(this.gl.TEXTURE_2D, 0, this.gl.DEPTH_COMPONENT32F, size.width, size.height, 0, this.gl.DEPTH_COMPONENT, this.gl.FLOAT, null)
         this._textureNearestClamp(this.gl.TEXTURE_2D)
-        tex.framebuffer = new Framebuffer(this.gl, size.width, size.height, tex.texture, this.gl.DEPTH_ATTACHMENT)
+        tex.framebuffer = new Framebuffer(this.gl, size, tex.texture, this.gl.DEPTH_ATTACHMENT)
         return tex
     }
 
-    createEmptyCubemap(size=512, type="color"){
+    createEmptyCubemap(size=this.params.texture_size, type="color"){
       const tex = this._new(this.gl.TEXTURE_CUBE_MAP)
       tex.framebuffers = []
       this.cubemapFaces.forEach(face => {
         if(type == "color"){
-          this.gl.texImage2D(face, 0, this.gl.RGBA, size, size, 0, this.gl.RGBA, this.gl.UNSIGNED_BYTE, null)
-          tex.framebuffers.push(new Framebuffer(this.gl, size, size, tex.texture, this.gl.COLOR_ATTACHMENT0, face))
+          this.gl.texImage2D(face, 0, this.gl.RGBA, size.width, size.height, 0, this.gl.RGBA, this.gl.UNSIGNED_BYTE, null)
+          tex.framebuffers.push(new Framebuffer(this.gl, size, tex.texture, this.gl.COLOR_ATTACHMENT0, face))
         }else if(type == "depth"){
-          this.gl.texImage2D(face, 0, this.gl.DEPTH_COMPONENT32F, size, size, 0, this.gl.DEPTH_COMPONENT, this.gl.FLOAT, null)
-          tex.framebuffers.push(new Framebuffer(this.gl, size, size, tex.texture, this.gl.DEPTH_ATTACHMENT, face))
+          this.gl.texImage2D(face, 0, this.gl.DEPTH_COMPONENT32F, size.width, size.height, 0, this.gl.DEPTH_COMPONENT, this.gl.FLOAT, null)
+          tex.framebuffers.push(new Framebuffer(this.gl, size, tex.texture, this.gl.DEPTH_ATTACHMENT, face))
         }else{
           console.error("Invalid cubemap type : "+type)
         }
@@ -78,7 +79,7 @@ export default class Textures{
       return tex
     }
 
-    createCubemap(folder, size=512){
+    createCubemap(folder, size=this.params.texture_size){
         const tex = this._new(this.gl.TEXTURE_CUBE_MAP)
         let faces = [
           [this.cubemapFaces[0], "px.png"],
@@ -105,7 +106,7 @@ export default class Textures{
 
                 this.gl.bindTexture(this.gl.TEXTURE_CUBE_MAP, tex.texture)
                 imgs.forEach( (img,i) => {
-                  this.gl.texImage2D(faces[i][0], 0, this.gl.RGBA, size, size, 0, this.gl.RGBA, this.gl.UNSIGNED_BYTE, img)
+                  this.gl.texImage2D(faces[i][0], 0, this.gl.RGBA, size.width, size.height, 0, this.gl.RGBA, this.gl.UNSIGNED_BYTE, img)
                 })
                 this.gl.generateMipmap(this.gl.TEXTURE_CUBE_MAP)
                 this.gl.texParameteri(this.gl.TEXTURE_CUBE_MAP, this.gl.TEXTURE_MIN_FILTER, this.gl.LINEAR_MIPMAP_LINEAR)

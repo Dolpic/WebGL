@@ -24,7 +24,7 @@ export default class RenderingEngine{
         }
 
         this.programs = new ProgramWrapper(this.gl)
-        this.textures = new Textures(this.gl)
+        this.textures = new Textures(this.gl, this.params)
         this.skybox   = null
         this.objects  = new Objects(this.gl, this.textures, this, obj => {
             if(this.skybox != null){
@@ -36,8 +36,8 @@ export default class RenderingEngine{
         this.scene = new Scene(this.gl, screenSize, this.programs, this.textures, this.params)
 
         if(this.params.with_shadow_map){
-            this.scene.createShadowMap(this.params.cubemap_size)
-            this.scene.createOmniShadowMap(this.params.cubemap_size)
+            this.scene.createShadowMap()
+            this.scene.createOmniShadowMap()
         }
     }
     
@@ -50,7 +50,7 @@ export default class RenderingEngine{
             "clear_depth": 1.0,
             "with_shadow_map" : true,
             "show_shadow_map" : false,
-            "cubemap_size" : {width:512, height:512}
+            "texture_size" : {width:512, height:512}
         }
         for(const prop in defaults){
             result[prop] = params.hasOwnProperty(prop) ? params[prop] : defaults[prop]

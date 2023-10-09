@@ -28,7 +28,7 @@ export default class Scene{
         }))
         this.shadowMap   = null
 
-        let size = this.params.cubemap_size
+        let size = this.params.texture_size
         this.cubemap = {
             camera:new Camera(()=>{}, size.width/size.height, [0,0,0], [0,0,0], [1,1,1], 90),
             rotations : [
@@ -58,7 +58,7 @@ export default class Scene{
         this.gl.viewport(0, 0, this.screenSize.width, this.screenSize.height)
     }
 
-    createShadowMap(size){
+    createShadowMap(size=this.params.texture_size){
         this.programs.createProgram("dirShadowmap", "shadowmap")
         this.shadowMap = {
             texture:      this.textures.createDepthTexture(size),
@@ -82,10 +82,10 @@ export default class Scene{
         this.programs.setShaderParams({uMatDirShadowMap: this.shadowMap.lightMatrix})
     }
 
-    createOmniShadowMap(size){
+    createOmniShadowMap(size=this.params.texture_size){
         this.programs.createProgram("omniShadowmap", "shadowmap")
         // TODO Unify size as int and as {width, height}
-        this.omniShadowMap = this.textures.createEmptyCubemap(size.width, "depth")
+        this.omniShadowMap = this.textures.createEmptyCubemap(size, "depth")
         this.programs.setShaderParams({uOmniShadowMap: this.omniShadowMap})
     }
 
