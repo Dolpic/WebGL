@@ -61,9 +61,9 @@ export default class Scene{
     createShadowMap(size=this.params.texture_size){
         this.programs.createProgram("dirShadowmap", "shadowmap")
         this.shadowMap = {
-            texture:      this.textures.createDepthTexture(size),
-            lightMatrix : glMatrix.mat4.create(),
-            camera:       new Camera(() => {}, size.width/size.height),
+            texture:     this.textures.createDepthTexture(size),
+            lightMatrix: glMatrix.mat4.create(),
+            camera:      new Camera(() => {}, size.width/size.height),
         }
         this.shadowMap.camera.setOrthoProjection(-10, 10, -10, 10, 0.1, 200)
         this.programs.setShaderParams({uDirShadowMap: this.shadowMap.texture})
